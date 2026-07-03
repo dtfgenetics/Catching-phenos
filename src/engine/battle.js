@@ -15,12 +15,14 @@ export function createCombatant(unit, level = 1) {
 
 export function calculateDamage({ attacker, defender, ability }) {
   const basePower = ability.power ?? 0;
+  if (basePower <= 0) return 0;
+
   const attackStat = ability.category === 'special' ? attacker.stats.terps : attacker.stats.power;
   const defenseStat = defender.stats.roots;
   const classMultiplier = getClassMultiplier(attacker.classes, defender.classes);
 
   const raw = basePower + attackStat - Math.floor(defenseStat / 2);
-  return Math.max(ability.power > 0 ? 1 : 0, Math.round(raw * classMultiplier));
+  return Math.max(1, Math.round(raw * classMultiplier));
 }
 
 export function applyDamage(combatant, amount) {
