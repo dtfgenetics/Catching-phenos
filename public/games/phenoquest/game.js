@@ -319,7 +319,7 @@ function bindKeyboardMovement() {
 bindKeyboardMovement();
 
 startButton?.addEventListener('click', async () => {
-  showPanel({ panel, titleEl: panelTitle, copyEl: debugOutput, title: 'Seedling Town Demo', copy: 'Loading MVP data...' });
+  showPanel({ panel, titleEl: panelTitle, copyEl: panelCopy, debugEl: debugOutput, title: 'Seedling Town Demo', copy: 'Loading MVP data...' });
 
   try {
     const data = await loadGameData();
