@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { calculateDamage } from '../src/engine/battle.js';
 import { previewPairing } from '../src/engine/breeding.js';
-import { getQuestEventIds } from '../src/engine/quest-events.js';
+import { applyQuestEvent, getQuestEventIds } from '../src/engine/quest-events.js';
 import { pickWeightedWeather } from '../src/engine/weather.js';
 
 const requiredJsonFiles = [
@@ -83,6 +83,16 @@ for (const path of requiredModules) {
 const questEventIds = getQuestEventIds();
 assert(questEventIds.includes('starter_chosen'), 'Quest events missing starter_chosen.');
 assert(questEventIds.includes('first_result_claimed'), 'Quest events missing first_result_claimed.');
+
+const progressionSeed = {
+  player: { rank: 'seedling_runner' },
+  world: { unlockedRegions: ['seedling_town'] },
+  quests: { activeQuest: 'root_first_unit', completed: [], flags: {} }
+};
+const progressed = applyQuestEvent(progressionSeed, 'first_result_claimed');
+assert(progressed.player.rank === 'field_scout', 'first_result_claimed should advance player to field_scout.');
+assert(progressed.world.unlockedRegions.includes('terp_fields'), 'first_result_claimed should unlock terp_fields.');
+assert(progressed.quests.flags.lineage_preview_unlocked === true, 'first_result_claimed should unlock lineage preview flag.');
 
 const starters = await readJson('data/phenos/mvp_units.json');
 const extras = await readJson('data/phenos/mvp_units_extra.json');
