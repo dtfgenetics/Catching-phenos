@@ -5,8 +5,9 @@ import { renderMapGrid, renderMapLabel } from '../../../src/ui/map-ui.js';
 import { renderMovementControls } from '../../../src/ui/movement-ui.js';
 import { renderEncounterControls, renderEncounterResult } from '../../../src/ui/encounter-ui.js';
 import { renderCombatPanel, renderCombatResult } from '../../../src/ui/combat-ui.js';
+import { renderRecipeMessage, renderRecipePanel } from '../../../src/ui/recipe-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
-import { setStarterChoice } from '../../../src/engine/game-state.js';
+import { addStoredUnit, setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, writeSave } from '../../../src/engine/save.js';
 import { getMap } from '../../../src/engine/maps.js';
 import { applyTransition, movePlayer } from '../../../src/engine/movement.js';
@@ -14,8 +15,11 @@ import { rollEncounter, rollLevel } from '../../../src/engine/encounters.js';
 import { findExpression, getExpressionRewardTag } from '../../../src/engine/expression.js';
 import { createCombatant, isDefeated, resolveAbility } from '../../../src/engine/battle.js';
 import { calculateMaterialReward } from '../../../src/engine/battle-rewards.js';
-import { addBattleProgress, addMaterials } from '../../../src/engine/collection.js';
-import { addMaterial } from '../../../src/engine/inventory.js';
+import { addBattleProgress, addMaterials, addRootedResult, spendMaterials } from '../../../src/engine/collection.js';
+import { addMaterial, removeMaterial } from '../../../src/engine/inventory.js';
+import { createTimer } from '../../../src/engine/timers.js';
+import { addResultTimer, findResultTimer, refreshResultTimers, removeResultTimer } from '../../../src/engine/result-timers.js';
+import { createTimerResult } from '../../../src/engine/result-factory.js';
 
 const startButton = document.querySelector('#start-button');
 const panel = document.querySelector('#game-panel');
@@ -28,10 +32,13 @@ const movementControls = document.querySelector('#movement-controls');
 const encounterControls = document.querySelector('#encounter-controls');
 const encounterResult = document.querySelector('#encounter-result');
 const combatPanel = document.querySelector('#combat-panel');
+const recipePanel = document.querySelector('#recipe-panel');
 const debugOutput = document.querySelector('#debug-output');
 
 let activeData = null;
 let activeCombat = null;
+let activeRecipeSpeciesId = null;
+let activeRecipeExpressionId = null;
 
 const DATA_PATHS = {
   expressions: '../../../data/expressions/expression_matrix_mvp.json',
@@ -76,6 +83,10 @@ function getUnitActions(data, species) {
   return (species.abilities ?? []).map((abilityId) => getAbility(data, abilityId)).filter(Boolean);
 }
 
+function getExpressionById(expressionId) {
+  return activeData?.expressions.find((expression) => expression.id === expressionId) ?? null;
+}
+
 function renderCurrentMap(data, saveData) {
   const currentMap = getMap(data.maps, saveData.player.currentMap);
   renderMapLabel({ container: mapLabel, map: currentMap, player: saveData.player });
@@ -92,6 +103,71 @@ function renderActiveCombat(log = '') {
     log,
     onAction: handleCombatAction
   });
+}
+
+function renderRecipeForSpecies(species, expression = null) {
+  if (!species) return;
+
+  const refreshedSave = refreshResultTimers(loadSave());
+  writeSave(refreshedSave);
+
+  const entry = refreshedSave.collection[species.id];
+  const activeTimer = findResultTimer(refreshedSave, species.id);
+  activeRecipeSpeciesId = species.id;
+  activeRecipeExpressionId = expression?.id ?? activeRecipeExpressionId;
+
+  renderRecipePanel({
+    container: recipePanel,
+    entry,
+    species,
+    activeTimer,
+    onStart: () => handleStartRecipe(species, expression),
+    onClaim: () => handleClaimRecipe(species)
+  });
+}
+
+function handleStartRecipe(species, expression = null) {
+  const saveData = refreshResultTimers(loadSave());
+  const entry = saveData.collection[species.id];
+  if (!entry || entry.materialsOwned < entry.materialsRequired) return;
+
+  const timer = createTimer({
+    id: `${species.id}_${Date.now()}`,
+    recipeId: species.id,
+    durationSeconds: species.recipe.demoSeconds,
+    inputTags: [getExpressionRewardTag(expression)],
+    weatherAtStart: saveData.world.weather,
+    cueAtStart: saveData.world.cue
+  });
+
+  const nextSave = addResultTimer({
+    ...saveData,
+    collection: spendMaterials(saveData.collection, species.id, entry.materialsRequired),
+    inventory: removeMaterial(saveData.inventory, species.id, entry.materialsRequired)
+  }, timer);
+
+  writeSave(nextSave);
+  renderRecipeForSpecies(species, expression);
+  debugOutput.textContent = JSON.stringify({ timerStarted: timer }, null, 2);
+}
+
+function handleClaimRecipe(species) {
+  const saveData = refreshResultTimers(loadSave());
+  const timer = findResultTimer(saveData, species.id);
+  if (!timer || timer.status !== 'ready') return;
+
+  const expression = getExpressionById(activeRecipeExpressionId) ?? findExpression(activeData.expressions, timer.weatherAtStart, timer.cueAtStart);
+  const resultUnit = createTimerResult({ species, expression, sourceTags: timer.inputTags });
+  const withoutTimer = removeResultTimer(saveData, timer.id);
+  const withStoredUnit = addStoredUnit(withoutTimer, resultUnit);
+  const nextSave = {
+    ...withStoredUnit,
+    collection: addRootedResult(withStoredUnit.collection, species.id, resultUnit.trait, resultUnit.expression, resultUnit.isKeeper)
+  };
+
+  writeSave(nextSave);
+  renderRecipeMessage({ container: recipePanel, message: `${resultUnit.displayName} result claimed and saved to the Vault Garden.` });
+  debugOutput.textContent = JSON.stringify({ resultUnit, collection: nextSave.collection[species.id] }, null, 2);
 }
 
 function handleMove(direction) {
@@ -190,9 +266,11 @@ function handleCombatAction(actionId) {
   activeCombat.opponent = playerTurn.defender;
 
   if (isDefeated(activeCombat.opponent)) {
-    const { reward, nextSave } = awardVictory(activeCombat);
-    renderCombatResult({ container: combatPanel, message: `${activeCombat.opponent.displayName} was defeated. Earned ${reward.materialCount} field material.` });
-    debugOutput.textContent = JSON.stringify({ reward, collection: nextSave.collection[activeCombat.species.id] }, null, 2);
+    const defeatedState = activeCombat;
+    const { reward, nextSave } = awardVictory(defeatedState);
+    renderCombatResult({ container: combatPanel, message: `${defeatedState.opponent.displayName} was defeated. Earned ${reward.materialCount} field material.` });
+    renderRecipeForSpecies(defeatedState.species, defeatedState.expression);
+    debugOutput.textContent = JSON.stringify({ reward, collection: nextSave.collection[defeatedState.species.id] }, null, 2);
     activeCombat = null;
     return;
   }
@@ -256,7 +334,7 @@ startButton?.addEventListener('click', async () => {
 
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderCurrentMap(data, nextSave);
-        panelCopy.textContent = 'Starter saved locally. Use movement, test a field encounter, then win combat to earn field material.';
+        panelCopy.textContent = 'Starter saved locally. Win combat to earn material, start a timer, and claim the result.';
         debugOutput.textContent = JSON.stringify(nextSave.player, null, 2);
       }
     });
