@@ -1,10 +1,15 @@
 import { fetchJson } from '../../../src/data/fetch-json.js';
 import { summarizeMvpData, showPanel } from '../../../src/ui/render-summary.js';
+import { renderChosenStarter, renderStarterSelection } from '../../../src/ui/starter-selection-ui.js';
+import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
+import { setStarterChoice } from '../../../src/engine/game-state.js';
+import { loadSave, writeSave } from '../../../src/engine/save.js';
 
 const startButton = document.querySelector('#start-button');
 const panel = document.querySelector('#game-panel');
 const panelTitle = document.querySelector('#panel-title');
 const panelCopy = document.querySelector('#panel-copy');
+const starterSelection = document.querySelector('#starter-selection');
 const debugOutput = document.querySelector('#debug-output');
 
 const DATA_PATHS = {
@@ -34,6 +39,10 @@ async function loadGameData() {
   return { ...Object.fromEntries(entries), maps };
 }
 
+function getAllUnits(data) {
+  return [...(data.starters ?? []), ...(data.extraUnits ?? [])];
+}
+
 startButton?.addEventListener('click', async () => {
   showPanel({
     panel,
@@ -46,14 +55,31 @@ startButton?.addEventListener('click', async () => {
 
   try {
     const data = await loadGameData();
+    const allUnits = getAllUnits(data);
+    const starters = getStarterOptions(allUnits);
+
     showPanel({
       panel,
       titleEl: panelTitle,
       copyEl: panelCopy,
       debugEl: debugOutput,
-      title: 'Seedling Town Demo',
-      copy: 'MVP data loaded. Next step: connect starter selection, movement, battle, timers, and PhenoLog UI.',
+      title: 'Choose Your First Partner',
+      copy: 'Pick one starter to begin the Seedling Town Demo.',
       debug: summarizeMvpData(data)
+    });
+
+    renderStarterSelection({
+      container: starterSelection,
+      starters,
+      onChoose: (starterId) => {
+        const starterUnit = chooseStarter(allUnits, starterId);
+        const nextSave = setStarterChoice(loadSave(), starterId, starterUnit);
+        writeSave(nextSave);
+
+        renderChosenStarter({ container: starterSelection, starterUnit });
+        panelCopy.textContent = 'Starter saved locally. Next build step: transition into Seedling Town movement and dialogue.';
+        debugOutput.textContent = JSON.stringify(nextSave.player, null, 2);
+      }
     });
   } catch (error) {
     showPanel({
