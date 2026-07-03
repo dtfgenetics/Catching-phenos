@@ -6,6 +6,7 @@
   "scripts": {
     "smoke": "node scripts/smoke-check.mjs",
     "compile": "node scripts/compile-check.mjs",
-    "check": "npm run smoke && npm run compile"
+    "check": "npm run smoke && npm run compile",
+    "dev": "node scripts/dev-server.mjs"
   }
 }
