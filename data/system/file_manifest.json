@@ -74,7 +74,12 @@
     "docs/architecture/BREEDING_GENOTYPE_SYSTEM.md",
     "docs/production/BACKLOG.md",
     "docs/production/CODEX_BUILD_NOTES.md",
-    "docs/production/HOW_TO_RUN.md"
+    "docs/production/HOW_TO_RUN.md",
+    "docs/production/DEPLOYMENT_PLAN.md",
+    "docs/production/DTFSEEDS_ROUTE_PLAN.md",
+    "docs/art/SPRITE_STYLE_GUIDE.md",
+    "docs/art/UI_STYLE_GUIDE.md",
+    "docs/art/AUDIO_STYLE_GUIDE.md"
   ],
   "approvedCommands": [
     "npm run audit",
