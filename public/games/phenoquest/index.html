@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PhenoQuest: The Living Seed Vault</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main id="app" class="game-shell">
+      <section class="title-card">
+        <p class="eyebrow">DTF Seeds Game Hub</p>
+        <h1>PhenoQuest</h1>
+        <h2>The Living Seed Vault</h2>
+        <p class="tagline">Collect the Whole Garden.</p>
+        <button id="start-button" type="button">Start Demo</button>
+      </section>
+
+      <section id="game-panel" class="panel hidden" aria-live="polite">
+        <h2 id="panel-title">Seedling Town Demo</h2>
+        <p id="panel-copy">Loading game data...</p>
+        <pre id="debug-output"></pre>
+      </section>
+    </main>
+
+    <script src="./game.js" type="module"></script>
+  </body>
+</html>
