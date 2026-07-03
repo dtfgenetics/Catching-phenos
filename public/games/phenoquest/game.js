@@ -7,6 +7,7 @@ import { renderEncounterControls, renderEncounterResult } from '../../../src/ui/
 import { renderCombatPanel, renderCombatResult } from '../../../src/ui/combat-ui.js';
 import { renderRecipeMessage, renderRecipePanel } from '../../../src/ui/recipe-ui.js';
 import { renderCollectionPanel } from '../../../src/ui/collection-ui.js';
+import { renderVaultGardenPanel } from '../../../src/ui/vault-garden-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
 import { addStoredUnit, setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, resetSave, writeSave } from '../../../src/engine/save.js';
@@ -36,6 +37,7 @@ const encounterControls = document.querySelector('#encounter-controls');
 const encounterResult = document.querySelector('#encounter-result');
 const combatPanel = document.querySelector('#combat-panel');
 const recipePanel = document.querySelector('#recipe-panel');
+const vaultGardenPanel = document.querySelector('#vault-garden-panel');
 const collectionPanel = document.querySelector('#collection-panel');
 const debugOutput = document.querySelector('#debug-output');
 
@@ -106,6 +108,13 @@ function renderCollectionProgress(saveData = loadSave()) {
   });
 }
 
+function renderVaultGarden(saveData = loadSave()) {
+  renderVaultGardenPanel({
+    container: vaultGardenPanel,
+    vaultGarden: saveData.vaultGarden
+  });
+}
+
 function renderActiveCombat(log = '') {
   if (!activeCombat) return;
   renderCombatPanel({
@@ -122,6 +131,7 @@ function clearPlayPanels() {
   encounterResult.innerHTML = '';
   combatPanel.innerHTML = '';
   recipePanel.innerHTML = '';
+  vaultGardenPanel.innerHTML = '';
   collectionPanel.innerHTML = '';
   activeCombat = null;
   activeRecipeSpeciesId = null;
@@ -149,6 +159,7 @@ function renderRecipeForSpecies(species, expression = null) {
     onClaim: () => handleClaimRecipe(species)
   });
   renderCollectionProgress(refreshedSave);
+  renderVaultGarden(refreshedSave);
 }
 
 function handleStartRecipe(species, expression = null) {
@@ -174,6 +185,7 @@ function handleStartRecipe(species, expression = null) {
   writeSave(nextSave);
   renderRecipeForSpecies(species, expression);
   renderCollectionProgress(nextSave);
+  renderVaultGarden(nextSave);
   debugOutput.textContent = JSON.stringify({ timerStarted: timer, activeQuest: nextSave.quests.activeQuest }, null, 2);
 }
 
@@ -194,6 +206,7 @@ function handleClaimRecipe(species) {
 
   writeSave(nextSave);
   renderRecipeMessage({ container: recipePanel, message: `${resultUnit.displayName} result claimed and saved to the Vault Garden.` });
+  renderVaultGarden(nextSave);
   renderCollectionProgress(nextSave);
   debugOutput.textContent = JSON.stringify({ resultUnit, activeQuest: nextSave.quests.activeQuest, collection: nextSave.collection[species.id] }, null, 2);
 }
@@ -300,6 +313,7 @@ function handleCombatAction(actionId) {
     renderCombatResult({ container: combatPanel, message: `${defeatedState.opponent.displayName} was defeated. Earned ${reward.materialCount} field material.` });
     renderRecipeForSpecies(defeatedState.species, defeatedState.expression);
     renderCollectionProgress(nextSave);
+    renderVaultGarden(nextSave);
     debugOutput.textContent = JSON.stringify({ reward, activeQuest: nextSave.quests.activeQuest, collection: nextSave.collection[defeatedState.species.id] }, null, 2);
     activeCombat = null;
     return;
@@ -326,6 +340,7 @@ function handleResetSave() {
   if (activeData) {
     renderCurrentMap(activeData, freshSave);
     renderCollectionProgress(freshSave);
+    renderVaultGarden(freshSave);
   }
   starterSelection.innerHTML = '';
   panelCopy.textContent = 'Save reset. Press Start Demo again or choose a new starter.';
@@ -367,6 +382,7 @@ startButton?.addEventListener('click', async () => {
     renderMovementControls({ container: movementControls, onMove: handleMove });
     renderEncounterControls({ container: encounterControls, onRoll: handleEncounterRoll });
     renderCollectionProgress(loadSave());
+    renderVaultGarden(loadSave());
 
     renderStarterSelection({
       container: starterSelection,
@@ -380,6 +396,7 @@ startButton?.addEventListener('click', async () => {
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderCurrentMap(data, nextSave);
         renderCollectionProgress(nextSave);
+        renderVaultGarden(nextSave);
         panelCopy.textContent = 'Starter saved locally. Win combat to earn material, start a timer, and claim the result.';
         debugOutput.textContent = JSON.stringify({ player: nextSave.player, activeQuest: nextSave.quests.activeQuest }, null, 2);
       }
