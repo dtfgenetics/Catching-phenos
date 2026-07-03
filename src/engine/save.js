@@ -49,7 +49,7 @@ export function loadSave() {
   if (!raw) return createDefaultSave();
 
   try {
-    return migrateSave(JSON.parse(raw));
+    return migrateSave(JSON.parse(raw), createDefaultSave());
   } catch {
     return createDefaultSave();
   }
