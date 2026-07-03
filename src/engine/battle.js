@@ -9,7 +9,8 @@ export function createCombatant(unit, level = 1) {
     maxVigor: unit.baseStats.vigor + level * 2,
     vigor: unit.baseStats.vigor + level * 2,
     stability: unit.baseStats.stability,
-    stats: { ...unit.baseStats }
+    stats: { ...unit.baseStats },
+    statuses: []
   };
 }
 
