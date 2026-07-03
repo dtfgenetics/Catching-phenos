@@ -32,6 +32,7 @@ export function createDefaultSave() {
     world: {
       weather: GAME_CONFIG.mvp.defaultWeather,
       cue: GAME_CONFIG.mvp.defaultCue,
+      unlockedRegions: ['seedling_town'],
       regionProgress: {
         terp_fields: 0
       },
