@@ -22,9 +22,49 @@ npm run check
 This runs:
 
 ```bash
+npm run audit
+npm run contracts
+npm run rules
 npm run smoke
 npm run compile
 ```
+
+## Audit Check
+
+Use:
+
+```bash
+npm run audit
+```
+
+This checks the required file manifest.
+
+## Contract Check
+
+Use:
+
+```bash
+npm run contracts
+```
+
+This checks key JSON data shapes.
+
+## Gameplay Rules Check
+
+Use:
+
+```bash
+npm run rules
+```
+
+This checks core gameplay expectations:
+
+- Calyx dialogue starts
+- dialogue runner returns a line
+- facing Professor Calyx resolves an NPC interaction
+- sticky tongue applies Rootbound
+- resin guard applies Shielded
+- enemy AI chooses the stronger basic action
 
 ## Smoke Check
 
@@ -78,17 +118,20 @@ In the browser:
 
 1. Press Start Demo.
 2. Choose a starter.
-3. Change weather if desired.
-4. Move on the placeholder map.
-5. Roll a field encounter.
-6. Use combat actions.
-7. Win combat to earn material.
-8. Start a timer recipe when enough material exists.
-9. Check timer.
-10. Claim the result.
-11. Confirm Vault Garden and PhenoLog update.
-12. Check Lineage Preview.
-13. Reset save and repeat.
+3. Move near an NPC.
+4. Face the NPC and press Interact, Enter, or Space.
+5. Advance dialogue.
+6. Change weather if desired.
+7. Move on the placeholder map.
+8. Roll a field encounter.
+9. Use combat actions.
+10. Win combat to earn material.
+11. Start a timer recipe when enough material exists.
+12. Check timer.
+13. Claim the result.
+14. Confirm Vault Garden and PhenoLog update.
+15. Check Lineage Preview.
+16. Reset save and repeat.
 
 ## Current Route
 
