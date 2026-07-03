@@ -52,7 +52,8 @@ const requiredModules = [
   'src/ui/movement-ui.js',
   'src/ui/recipe-ui.js',
   'src/ui/render-summary.js',
-  'src/ui/starter-selection-ui.js'
+  'src/ui/starter-selection-ui.js',
+  'src/ui/vault-garden-ui.js'
 ];
 
 async function readJson(path) {
@@ -152,6 +153,7 @@ assert(html.includes('map-preview'), 'Game page missing map preview container.')
 assert(html.includes('encounter-controls'), 'Game page missing encounter controls container.');
 assert(html.includes('combat-panel'), 'Game page missing combat panel container.');
 assert(html.includes('recipe-panel'), 'Game page missing recipe panel container.');
+assert(html.includes('vault-garden-panel'), 'Game page missing Vault Garden panel container.');
 assert(html.includes('collection-panel'), 'Game page missing collection panel container.');
 
 console.log('Smoke check complete.');
