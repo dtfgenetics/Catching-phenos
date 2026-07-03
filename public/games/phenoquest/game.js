@@ -11,8 +11,11 @@ import { loadSave, writeSave } from '../../../src/engine/save.js';
 import { getMap } from '../../../src/engine/maps.js';
 import { applyTransition, movePlayer } from '../../../src/engine/movement.js';
 import { rollEncounter, rollLevel } from '../../../src/engine/encounters.js';
-import { findExpression } from '../../../src/engine/expression.js';
+import { findExpression, getExpressionRewardTag } from '../../../src/engine/expression.js';
 import { createCombatant, isDefeated, resolveAbility } from '../../../src/engine/battle.js';
+import { calculateMaterialReward } from '../../../src/engine/battle-rewards.js';
+import { addBattleProgress, addMaterials } from '../../../src/engine/collection.js';
+import { addMaterial } from '../../../src/engine/inventory.js';
 
 const startButton = document.querySelector('#start-button');
 const panel = document.querySelector('#game-panel');
@@ -133,6 +136,8 @@ function handleEncounterRoll() {
   if (species && saveData.team[0]) {
     const playerSpecies = getSpecies(activeData, saveData.team[0].speciesId);
     activeCombat = {
+      species,
+      expression,
       player: createCombatant(playerSpecies, saveData.team[0].level ?? 1),
       opponent: createCombatant(species, level),
       actions: getUnitActions(activeData, playerSpecies),
@@ -150,33 +155,50 @@ function handleEncounterRoll() {
   }, null, 2);
 }
 
+function awardVictory(activeCombatState) {
+  const saveData = loadSave();
+  const tag = getExpressionRewardTag(activeCombatState.expression);
+  const reward = calculateMaterialReward({
+    victory: true,
+    highStability: activeCombatState.player.stability >= 7,
+    expressionTag: tag
+  });
+
+  const collectionAfterBattle = addBattleProgress(saveData.collection, activeCombatState.species);
+  const collectionAfterReward = addMaterials(collectionAfterBattle, activeCombatState.species, reward.materialCount, activeCombatState.expression?.id ?? null);
+  const inventoryAfterReward = addMaterial(saveData.inventory, activeCombatState.species.id, reward.materialCount, reward.tags);
+
+  const nextSave = {
+    ...saveData,
+    collection: collectionAfterReward,
+    inventory: inventoryAfterReward
+  };
+
+  writeSave(nextSave);
+  return { reward, nextSave };
+}
+
 function handleCombatAction(actionId) {
   if (!activeCombat || !activeData) return;
 
   const action = getAbility(activeData, actionId);
   if (!action) return;
 
-  const playerTurn = resolveAbility({
-    attacker: activeCombat.player,
-    defender: activeCombat.opponent,
-    ability: action
-  });
+  const playerTurn = resolveAbility({ attacker: activeCombat.player, defender: activeCombat.opponent, ability: action });
 
   activeCombat.player = playerTurn.attacker;
   activeCombat.opponent = playerTurn.defender;
 
   if (isDefeated(activeCombat.opponent)) {
-    renderCombatResult({ container: combatPanel, message: `${activeCombat.opponent.displayName} was defeated. Reward flow is next.` });
+    const { reward, nextSave } = awardVictory(activeCombat);
+    renderCombatResult({ container: combatPanel, message: `${activeCombat.opponent.displayName} was defeated. Earned ${reward.materialCount} field material.` });
+    debugOutput.textContent = JSON.stringify({ reward, collection: nextSave.collection[activeCombat.species.id] }, null, 2);
     activeCombat = null;
     return;
   }
 
   const opponentAction = activeCombat.opponentActions[0];
-  const opponentTurn = resolveAbility({
-    attacker: activeCombat.opponent,
-    defender: activeCombat.player,
-    ability: opponentAction
-  });
+  const opponentTurn = resolveAbility({ attacker: activeCombat.opponent, defender: activeCombat.player, ability: opponentAction });
 
   activeCombat.opponent = opponentTurn.attacker;
   activeCombat.player = opponentTurn.defender;
@@ -234,7 +256,7 @@ startButton?.addEventListener('click', async () => {
 
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderCurrentMap(data, nextSave);
-        panelCopy.textContent = 'Starter saved locally. Use movement, then test a field encounter and combat prototype.';
+        panelCopy.textContent = 'Starter saved locally. Use movement, test a field encounter, then win combat to earn field material.';
         debugOutput.textContent = JSON.stringify(nextSave.player, null, 2);
       }
     });
