@@ -3,6 +3,8 @@ import { summarizeMvpData, showPanel } from '../../../src/ui/render-summary.js';
 import { renderChosenStarter, renderStarterSelection } from '../../../src/ui/starter-selection-ui.js';
 import { renderMapGrid, renderMapLabel } from '../../../src/ui/map-ui.js';
 import { renderMovementControls } from '../../../src/ui/movement-ui.js';
+import { bindInteractionButton, renderInteractionControls, renderInteractionResult } from '../../../src/ui/interaction-ui.js';
+import { renderDialogueBox } from '../../../src/ui/dialogue-box-ui.js';
 import { renderEncounterControls, renderEncounterResult } from '../../../src/ui/encounter-ui.js';
 import { renderCombatPanel, renderCombatResult } from '../../../src/ui/combat-ui.js';
 import { renderRecipeMessage, renderRecipePanel } from '../../../src/ui/recipe-ui.js';
@@ -21,6 +23,9 @@ import { addStoredUnit, setStarterChoice } from '../../../src/engine/game-state.
 import { loadSave, resetSave, writeSave } from '../../../src/engine/save.js';
 import { getMap } from '../../../src/engine/maps.js';
 import { applyTransition, movePlayer } from '../../../src/engine/movement.js';
+import { resolveInteraction } from '../../../src/engine/interactions.js';
+import { applyDialogueEffects, advanceDialogueSession, createDialogueSession } from '../../../src/engine/dialogue-runner.js';
+import { chooseEnemyAction } from '../../../src/engine/combat-ai.js';
 import { rollEncounter, rollLevel } from '../../../src/engine/encounters.js';
 import { findExpression, getExpressionRewardTag } from '../../../src/engine/expression.js';
 import { createCombatant, isDefeated, resolveAbility } from '../../../src/engine/battle.js';
@@ -43,6 +48,8 @@ const starterSelection = document.querySelector('#starter-selection');
 const mapLabel = document.querySelector('#map-label');
 const mapPreview = document.querySelector('#map-preview');
 const movementControls = document.querySelector('#movement-controls');
+const interactionPanel = document.querySelector('#interaction-panel');
+const dialoguePanel = document.querySelector('#dialogue-panel');
 const encounterControls = document.querySelector('#encounter-controls');
 const encounterResult = document.querySelector('#encounter-result');
 const combatPanel = document.querySelector('#combat-panel');
@@ -57,8 +64,10 @@ const debugOutput = document.querySelector('#debug-output');
 
 let activeData = null;
 let activeCombat = null;
+let activeDialogueSession = null;
 let activeRecipeSpeciesId = null;
 let activeRecipeExpressionId = null;
+let lastDirection = 'down';
 
 const DATA_PATHS = {
   expressions: '../../../data/expressions/expression_matrix_mvp.json',
@@ -136,6 +145,19 @@ function renderWeatherControls(saveData = loadSave()) {
     weatherStates: activeData.weatherStates ?? [],
     currentWeatherId: saveData.world.weather,
     onSelect: handleWeatherSelect
+  });
+}
+
+function renderInteractionPanel() {
+  renderInteractionControls({ container: interactionPanel, onInteract: handleInteract });
+}
+
+function renderDialogueSession() {
+  renderDialogueBox({
+    container: dialoguePanel,
+    session: activeDialogueSession,
+    onNext: handleDialogueNext,
+    onClose: handleDialogueClose
   });
 }
 
@@ -260,7 +282,9 @@ function clearPlayPanels() {
   lineageLabPanel.innerHTML = '';
   collectionPanel.innerHTML = '';
   phenoLogPanel.innerHTML = '';
+  dialoguePanel.innerHTML = '';
   activeCombat = null;
+  activeDialogueSession = null;
   activeRecipeSpeciesId = null;
   activeRecipeExpressionId = null;
 }
@@ -354,10 +378,17 @@ function handleClaimRecipe(species) {
 function handleMove(direction) {
   if (!activeData) return;
 
+  lastDirection = direction;
   const saveData = loadSave();
   const currentMap = getMap(activeData.maps, saveData.player.currentMap);
   const moveResult = movePlayer(saveData, currentMap, direction);
-  let nextSave = moveResult.saveData;
+  let nextSave = {
+    ...moveResult.saveData,
+    player: {
+      ...moveResult.saveData.player,
+      facing: direction
+    }
+  };
 
   if (moveResult.transition) {
     nextSave = applyTransition(nextSave, moveResult.transition);
@@ -368,11 +399,61 @@ function handleMove(direction) {
   debugOutput.textContent = JSON.stringify({
     map: nextSave.player.currentMap,
     position: nextSave.player.position,
+    facing: nextSave.player.facing,
     weather: nextSave.world.weather,
     cue: nextSave.world.cue,
     moved: moveResult.moved,
     transition: moveResult.transition?.id ?? null
   }, null, 2);
+}
+
+function handleInteract() {
+  if (!activeData) return;
+
+  const saveData = loadSave();
+  const currentMap = getMap(activeData.maps, saveData.player.currentMap);
+  const interaction = resolveInteraction({ map: currentMap, saveData, direction: saveData.player.facing ?? lastDirection });
+
+  renderInteractionResult({ container: interactionPanel, interaction });
+  bindInteractionButton({ container: interactionPanel, onInteract: handleInteract });
+
+  if (!interaction.dialogueId) {
+    activeDialogueSession = null;
+    dialoguePanel.innerHTML = '';
+    debugOutput.textContent = JSON.stringify({ interaction }, null, 2);
+    return;
+  }
+
+  activeDialogueSession = createDialogueSession(activeData.dialogue, interaction.dialogueId, saveData);
+  if (activeDialogueSession.active) {
+    const nextSave = applyDialogueEffects(saveData, activeDialogueSession.record);
+    writeSave(nextSave);
+    renderPlayerPanels(nextSave);
+    renderDialogueSession();
+  }
+
+  debugOutput.textContent = JSON.stringify({ interaction, dialogue: activeDialogueSession.reason }, null, 2);
+}
+
+function handleDialogueNext() {
+  if (!activeData || !activeDialogueSession) return;
+
+  activeDialogueSession = advanceDialogueSession(activeDialogueSession, activeData.dialogue);
+  if (!activeDialogueSession.active) {
+    handleDialogueClose();
+    return;
+  }
+
+  const saveData = loadSave();
+  const nextSave = applyDialogueEffects(saveData, activeDialogueSession.record);
+  writeSave(nextSave);
+  renderPlayerPanels(nextSave);
+  renderDialogueSession();
+}
+
+function handleDialogueClose() {
+  activeDialogueSession = null;
+  dialoguePanel.innerHTML = '';
 }
 
 function handleEncounterRoll() {
@@ -459,7 +540,17 @@ function handleCombatAction(actionId) {
     return;
   }
 
-  const opponentAction = activeCombat.opponentActions[0];
+  const opponentAction = chooseEnemyAction({
+    opponent: activeCombat.opponent,
+    player: activeCombat.player,
+    actions: activeCombat.opponentActions
+  });
+
+  if (!opponentAction) {
+    renderActiveCombat(playerTurn.log);
+    return;
+  }
+
   const opponentTurn = resolveAbility({ attacker: activeCombat.opponent, defender: activeCombat.player, ability: opponentAction });
 
   activeCombat.opponent = opponentTurn.attacker;
@@ -480,6 +571,7 @@ function handleResetSave() {
   if (activeData) {
     renderWeatherControls(freshSave);
     renderCurrentMap(activeData, freshSave);
+    renderInteractionPanel();
     renderPlayerPanels(freshSave);
   }
   starterSelection.innerHTML = '';
@@ -491,9 +583,17 @@ function bindKeyboardMovement() {
   window.addEventListener('keydown', (event) => {
     const keyMap = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' };
     const direction = keyMap[event.key];
-    if (!direction) return;
-    event.preventDefault();
-    handleMove(direction);
+    if (direction) {
+      event.preventDefault();
+      handleMove(direction);
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (activeDialogueSession?.active) handleDialogueNext();
+      else handleInteract();
+    }
   });
 }
 
@@ -522,6 +622,7 @@ startButton?.addEventListener('click', async () => {
 
     renderWeatherControls(currentSave);
     renderMovementControls({ container: movementControls, onMove: handleMove });
+    renderInteractionPanel();
     renderEncounterControls({ container: encounterControls, onRoll: handleEncounterRoll });
     renderPlayerPanels(currentSave);
 
@@ -537,8 +638,9 @@ startButton?.addEventListener('click', async () => {
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderWeatherControls(nextSave);
         renderCurrentMap(data, nextSave);
+        renderInteractionPanel();
         renderPlayerPanels(nextSave);
-        panelCopy.textContent = 'Starter saved locally. Change weather, roll encounters, win combat, start a timer, and claim the result.';
+        panelCopy.textContent = 'Starter saved locally. Move, interact with NPCs, change weather, roll encounters, win combat, start a timer, and claim the result.';
         debugOutput.textContent = JSON.stringify({ player: nextSave.player, weather: nextSave.world.weather, activeQuest: nextSave.quests.activeQuest }, null, 2);
       }
     });
