@@ -9,6 +9,10 @@ export function summarizeMvpData(data) {
   const starterSlots = data.starterSlots?.length ?? 0;
   const items = data.items?.length ?? 0;
   const abilities = data.abilities?.length ?? 0;
+  const weatherStates = data.weatherStates?.length ?? 0;
+  const genotypeMarkers = data.genotypeMarkers?.length ?? 0;
+  const pairingRules = data.pairingRules?.length ?? 0;
+  const resultUnits = data.resultUnits?.length ?? 0;
 
   return [
     `Loaded starters: ${starters}`,
@@ -20,7 +24,11 @@ export function summarizeMvpData(data) {
     `Loaded dialogue records: ${dialogue}`,
     `Loaded starter slots: ${starterSlots}`,
     `Loaded items: ${items}`,
-    `Loaded abilities: ${abilities}`
+    `Loaded abilities: ${abilities}`,
+    `Loaded weather states: ${weatherStates}`,
+    `Loaded genotype markers: ${genotypeMarkers}`,
+    `Loaded pairing rules: ${pairingRules}`,
+    `Loaded future result units: ${resultUnits}`
   ].join('\n');
 }
 
