@@ -4,6 +4,8 @@ const entryFiles = [
   'public/games/phenoquest/game.js',
   'src/engine/battle.js',
   'src/engine/breeding.js',
+  'src/engine/genotype.js',
+  'src/engine/progression.js',
   'src/engine/weather.js',
   'src/ui/breeding-ui.js',
   'src/ui/weather-ui.js',
