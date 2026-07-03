@@ -3,7 +3,7 @@ import { summarizeMvpData, showPanel } from '../../../src/ui/render-summary.js';
 import { renderChosenStarter, renderStarterSelection } from '../../../src/ui/starter-selection-ui.js';
 import { renderMapGrid, renderMapLabel } from '../../../src/ui/map-ui.js';
 import { renderMovementControls } from '../../../src/ui/movement-ui.js';
-import { bindInteractionButton, renderInteractionControls, renderInteractionResult } from '../../../src/ui/interaction-ui.js';
+import { bindInteractionButton, renderInteractionControls, renderInteractionResult, renderNearbyInteractionHint } from '../../../src/ui/interaction-ui.js';
 import { renderDialogueBox } from '../../../src/ui/dialogue-box-ui.js';
 import { renderEncounterControls, renderEncounterResult } from '../../../src/ui/encounter-ui.js';
 import { renderCombatPanel, renderCombatResult } from '../../../src/ui/combat-ui.js';
@@ -151,6 +151,22 @@ function renderWeatherControls(saveData = loadSave()) {
 
 function renderInteractionPanel() {
   renderInteractionControls({ container: interactionPanel, onInteract: handleInteract });
+}
+
+function renderNearbyInteractionPanel(saveData = loadSave()) {
+  if (!activeData) {
+    renderInteractionPanel();
+    return;
+  }
+
+  const currentMap = getMap(activeData.maps, saveData.player.currentMap);
+  const interaction = resolveInteraction({
+    map: currentMap,
+    saveData,
+    direction: saveData.player.facing ?? lastDirection
+  });
+
+  renderNearbyInteractionHint({ container: interactionPanel, interaction, onInteract: handleInteract });
 }
 
 function renderDialogueSession() {
@@ -407,6 +423,7 @@ function handleMove(direction) {
 
   writeSave(nextSave);
   renderCurrentMap(activeData, nextSave);
+  renderNearbyInteractionPanel(nextSave);
   debugOutput.textContent = JSON.stringify({
     map: nextSave.player.currentMap,
     position: nextSave.player.position,
@@ -480,6 +497,7 @@ function handleDialogueChoice(choiceId) {
 function handleDialogueClose() {
   activeDialogueSession = null;
   dialoguePanel.innerHTML = '';
+  renderNearbyInteractionPanel(loadSave());
 }
 
 function handleEncounterRoll() {
@@ -599,7 +617,7 @@ function handleResetSave() {
   if (activeData) {
     renderWeatherControls(freshSave);
     renderCurrentMap(activeData, freshSave);
-    renderInteractionPanel();
+    renderNearbyInteractionPanel(freshSave);
     renderPlayerPanels(freshSave);
   }
   starterSelection.innerHTML = '';
@@ -650,7 +668,7 @@ startButton?.addEventListener('click', async () => {
 
     renderWeatherControls(currentSave);
     renderMovementControls({ container: movementControls, onMove: handleMove });
-    renderInteractionPanel();
+    renderNearbyInteractionPanel(currentSave);
     renderEncounterControls({ container: encounterControls, onRoll: handleEncounterRoll });
     renderPlayerPanels(currentSave);
 
@@ -666,7 +684,7 @@ startButton?.addEventListener('click', async () => {
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderWeatherControls(nextSave);
         renderCurrentMap(data, nextSave);
-        renderInteractionPanel();
+        renderNearbyInteractionPanel(nextSave);
         renderPlayerPanels(nextSave);
         panelCopy.textContent = 'Starter saved locally. Move, interact with NPCs, change weather, roll encounters, win combat, start a timer, and claim the result.';
         debugOutput.textContent = JSON.stringify({ player: nextSave.player, weather: nextSave.world.weather, activeQuest: nextSave.quests.activeQuest }, null, 2);
