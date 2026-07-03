@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "smoke": "node scripts/smoke-check.mjs"
+    "smoke": "node scripts/smoke-check.mjs",
+    "compile": "node scripts/compile-check.mjs",
+    "check": "npm run smoke && npm run compile"
   }
 }
