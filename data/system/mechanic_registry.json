@@ -75,6 +75,15 @@
       "browserFiles": ["public/games/phenoquest/game.js"]
     },
     {
+      "id": "lineage_lab_timers",
+      "status": "engine_ready",
+      "goal": "Create, refresh, and resolve timed Lineage Lab batches into Vault Garden result units.",
+      "dataFiles": ["data/breeding/pairing_rules_mvp.json", "data/breeding/result_units_mvp.json"],
+      "engineFiles": ["src/engine/lineage-timers.js", "src/engine/lineage-result-factory.js"],
+      "uiFiles": ["src/ui/vault-garden-ui.js"],
+      "browserFiles": []
+    },
+    {
       "id": "quest_progression",
       "status": "partial_hooks",
       "goal": "Advance player rank, flags, and region unlocks as systems complete.",
