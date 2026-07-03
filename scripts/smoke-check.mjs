@@ -20,7 +20,8 @@ const requiredJsonFiles = [
   'data/maps/aroma_trial_greenhouse.json',
   'data/weather/weather_states.json',
   'data/breeding/genotype_markers.json',
-  'data/breeding/pairing_rules_mvp.json'
+  'data/breeding/pairing_rules_mvp.json',
+  'data/breeding/result_units_mvp.json'
 ];
 
 const requiredModules = [
@@ -125,11 +126,24 @@ assert(markerIds.has('TERP'), 'Missing TERP marker.');
 assert(markerIds.has('STABILITY'), 'Missing STABILITY marker.');
 
 const pairingRules = await readJson('data/breeding/pairing_rules_mvp.json');
+const resultUnits = await readJson('data/breeding/result_units_mvp.json');
+const resultIds = new Set(resultUnits.map((unit) => unit.id));
+
 for (const rule of pairingRules) {
   assert(unitIds.has(rule.parentA), `Pairing rule references missing parentA: ${rule.parentA}`);
   assert(unitIds.has(rule.parentB), `Pairing rule references missing parentB: ${rule.parentB}`);
+  for (const resultId of rule.resultPool ?? []) {
+    assert(resultIds.has(resultId), `Pairing rule references missing result unit: ${resultId}`);
+  }
   for (const markerId of Object.keys(rule.markerBias ?? {})) {
     assert(markerIds.has(markerId), `Pairing rule references missing marker: ${markerId}`);
+  }
+}
+
+for (const resultUnit of resultUnits) {
+  assert(pairingRules.some((rule) => rule.id === resultUnit.sourceRule), `${resultUnit.id} references missing sourceRule: ${resultUnit.sourceRule}`);
+  for (const markerId of Object.keys(resultUnit.markers ?? {})) {
+    assert(markerIds.has(markerId), `${resultUnit.id} references missing marker: ${markerId}`);
   }
 }
 
