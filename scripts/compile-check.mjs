@@ -5,6 +5,7 @@ const entryFiles = [
   'src/engine/battle.js',
   'src/engine/breeding.js',
   'src/engine/weather.js',
+  'src/ui/breeding-ui.js',
   'src/ui/weather-ui.js',
   'scripts/smoke-check.mjs'
 ];
