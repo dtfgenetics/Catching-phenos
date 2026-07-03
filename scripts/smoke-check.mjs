@@ -32,6 +32,7 @@ const requiredModules = [
   'src/engine/quests.js',
   'src/engine/recipes.js',
   'src/engine/result-factory.js',
+  'src/engine/result-timers.js',
   'src/engine/save.js',
   'src/engine/starter-selection.js',
   'src/engine/timers.js',
