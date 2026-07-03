@@ -2,7 +2,7 @@ import { createCombatant, resolveAbility } from '../src/engine/battle.js';
 import { chooseEnemyAction } from '../src/engine/combat-ai.js';
 import { createDialogueSession, getCurrentDialogueLine } from '../src/engine/dialogue-runner.js';
 import { resolveInteraction } from '../src/engine/interactions.js';
-import { hasStatus } from '../src/engine/status-effects.js';
+import { hasStatus, tickStatuses } from '../src/engine/status-effects.js';
 import { createDefaultSave } from '../src/engine/save.js';
 import { readFile } from 'node:fs/promises';
 
@@ -54,6 +54,7 @@ assert(hasStatus(statusTurn.defender, 'rootbound'), 'sticky_tongue should apply 
 const resinGuard = abilities.find((ability) => ability.id === 'resin_guard');
 const guardTurn = resolveAbility({ attacker, defender, ability: resinGuard });
 assert(hasStatus(guardTurn.attacker, 'shielded'), 'resin_guard should apply shielded status.');
+assert(!hasStatus(tickStatuses(guardTurn.attacker), 'shielded'), 'shielded should expire after one status tick.');
 
 const chosenAction = chooseEnemyAction({
   opponent: attacker,
