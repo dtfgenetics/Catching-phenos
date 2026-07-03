@@ -1,15 +1,19 @@
 import { fetchJson } from '../../../src/data/fetch-json.js';
 import { summarizeMvpData, showPanel } from '../../../src/ui/render-summary.js';
 import { renderChosenStarter, renderStarterSelection } from '../../../src/ui/starter-selection-ui.js';
+import { renderMapGrid, renderMapLabel } from '../../../src/ui/map-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
 import { setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, writeSave } from '../../../src/engine/save.js';
+import { getMap } from '../../../src/engine/maps.js';
 
 const startButton = document.querySelector('#start-button');
 const panel = document.querySelector('#game-panel');
 const panelTitle = document.querySelector('#panel-title');
 const panelCopy = document.querySelector('#panel-copy');
 const starterSelection = document.querySelector('#starter-selection');
+const mapLabel = document.querySelector('#map-label');
+const mapPreview = document.querySelector('#map-preview');
 const debugOutput = document.querySelector('#debug-output');
 
 const DATA_PATHS = {
@@ -41,6 +45,12 @@ async function loadGameData() {
 
 function getAllUnits(data) {
   return [...(data.starters ?? []), ...(data.extraUnits ?? [])];
+}
+
+function renderCurrentMap(data, saveData) {
+  const currentMap = getMap(data.maps, saveData.player.currentMap);
+  renderMapLabel({ container: mapLabel, map: currentMap, player: saveData.player });
+  renderMapGrid({ container: mapPreview, map: currentMap, player: saveData.player });
 }
 
 startButton?.addEventListener('click', async () => {
@@ -77,7 +87,8 @@ startButton?.addEventListener('click', async () => {
         writeSave(nextSave);
 
         renderChosenStarter({ container: starterSelection, starterUnit });
-        panelCopy.textContent = 'Starter saved locally. Next build step: transition into Seedling Town movement and dialogue.';
+        renderCurrentMap(data, nextSave);
+        panelCopy.textContent = 'Starter saved locally. Seedling Town placeholder map loaded.';
         debugOutput.textContent = JSON.stringify(nextSave.player, null, 2);
       }
     });
