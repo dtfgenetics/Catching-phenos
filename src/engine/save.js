@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../game/config.js';
+import { migrateSave } from './save-migration.js';
 
 export function createDefaultSave() {
   return {
@@ -48,16 +49,7 @@ export function loadSave() {
   if (!raw) return createDefaultSave();
 
   try {
-    const parsed = JSON.parse(raw);
-    return {
-      ...createDefaultSave(),
-      ...parsed,
-      player: { ...createDefaultSave().player, ...parsed.player },
-      vaultGarden: { ...createDefaultSave().vaultGarden, ...parsed.vaultGarden },
-      inventory: { ...createDefaultSave().inventory, ...parsed.inventory },
-      quests: { ...createDefaultSave().quests, ...parsed.quests },
-      world: { ...createDefaultSave().world, ...parsed.world }
-    };
+    return migrateSave(JSON.parse(raw));
   } catch {
     return createDefaultSave();
   }
