@@ -27,6 +27,7 @@ const entryFiles = [
   'src/ui/interaction-ui.js',
   'src/ui/inventory-ui.js',
   'src/ui/lineage-lab-ui.js',
+  'src/ui/map-ui.js',
   'src/ui/phenolog-ui.js',
   'src/ui/quest-ui.js',
   'src/ui/vault-garden-ui.js',
