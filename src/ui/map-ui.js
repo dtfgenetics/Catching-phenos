@@ -1,3 +1,11 @@
+function findNpcAt(map, x, y) {
+  return (map.npcs ?? []).find((npc) => npc.x === x && npc.y === y) ?? null;
+}
+
+function findObjectAt(map, x, y) {
+  return (map.objects ?? []).find((object) => object.x === x && object.y === y) ?? null;
+}
+
 export function renderMapGrid({ container, map, player }) {
   if (!container || !map) return;
 
@@ -13,6 +21,21 @@ export function renderMapGrid({ container, map, player }) {
       tile.className = 'map-tile';
       tile.dataset.x = x;
       tile.dataset.y = y;
+
+      const npc = findNpcAt(map, x, y);
+      const object = findObjectAt(map, x, y);
+
+      if (npc) {
+        tile.classList.add('npc-tile');
+        tile.title = npc.id;
+        tile.textContent = '●';
+      }
+
+      if (object) {
+        tile.classList.add('object-tile');
+        tile.title = object.id;
+        tile.textContent = '■';
+      }
 
       if (player?.position?.x === x && player?.position?.y === y) {
         tile.classList.add('player-tile');
@@ -32,5 +55,6 @@ export function renderMapGrid({ container, map, player }) {
 
 export function renderMapLabel({ container, map, player }) {
   if (!container || !map) return;
-  container.textContent = `${map.displayName} — X:${player.position.x} Y:${player.position.y}`;
+  const facing = player.facing ? ` Facing:${player.facing}` : '';
+  container.textContent = `${map.displayName} — X:${player.position.x} Y:${player.position.y}${facing}`;
 }
