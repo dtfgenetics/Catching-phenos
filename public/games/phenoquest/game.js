@@ -9,7 +9,9 @@ import { renderRecipeMessage, renderRecipePanel } from '../../../src/ui/recipe-u
 import { renderCollectionPanel } from '../../../src/ui/collection-ui.js';
 import { renderVaultGardenPanel } from '../../../src/ui/vault-garden-ui.js';
 import { renderWeatherPanel } from '../../../src/ui/weather-ui.js';
+import { renderBreedingPanel } from '../../../src/ui/breeding-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
+import { previewPairing } from '../../../src/engine/breeding.js';
 import { addStoredUnit, setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, resetSave, writeSave } from '../../../src/engine/save.js';
 import { getMap } from '../../../src/engine/maps.js';
@@ -40,6 +42,7 @@ const encounterResult = document.querySelector('#encounter-result');
 const combatPanel = document.querySelector('#combat-panel');
 const recipePanel = document.querySelector('#recipe-panel');
 const vaultGardenPanel = document.querySelector('#vault-garden-panel');
+const breedingPanel = document.querySelector('#breeding-panel');
 const collectionPanel = document.querySelector('#collection-panel');
 const debugOutput = document.querySelector('#debug-output');
 
@@ -58,7 +61,10 @@ const DATA_PATHS = {
   quests: '../../../data/quests/mvp_quests.json',
   dialogue: '../../../data/dialogue/mvp_dialogue.json',
   starterSlots: '../../../data/starter_slots.json',
-  weatherStates: '../../../data/weather/weather_states.json'
+  weatherStates: '../../../data/weather/weather_states.json',
+  genotypeMarkers: '../../../data/breeding/genotype_markers.json',
+  pairingRules: '../../../data/breeding/pairing_rules_mvp.json',
+  resultUnits: '../../../data/breeding/result_units_mvp.json'
 };
 
 const MAP_PATHS = [
@@ -82,6 +88,14 @@ function getAllUnits(data) {
 
 function getSpecies(data, speciesId) {
   return getAllUnits(data).find((unit) => unit.id === speciesId) ?? null;
+}
+
+function getResultUnit(resultId) {
+  return activeData?.resultUnits?.find((unit) => unit.id === resultId) ?? null;
+}
+
+function getDisplayNameForSpecies(speciesId) {
+  return getSpecies(activeData, speciesId)?.displayName ?? getResultUnit(speciesId)?.displayName ?? speciesId;
 }
 
 function getAbility(data, abilityId) {
@@ -128,6 +142,52 @@ function renderVaultGarden(saveData = loadSave()) {
   });
 }
 
+function getPairingCandidates(saveData) {
+  const candidateIds = new Set();
+  for (const teamUnit of saveData.team ?? []) {
+    candidateIds.add(teamUnit.speciesId);
+  }
+  for (const storedUnit of saveData.vaultGarden?.rootedUnits ?? []) {
+    candidateIds.add(storedUnit.speciesId);
+  }
+  return Array.from(candidateIds);
+}
+
+function renderBreedingPreview(saveData = loadSave()) {
+  if (!activeData) return;
+  const candidates = getPairingCandidates(saveData);
+  let selectedPreview = null;
+  let selectedParents = [];
+
+  for (let i = 0; i < candidates.length; i += 1) {
+    for (let j = i + 1; j < candidates.length; j += 1) {
+      const preview = previewPairing({
+        rules: activeData.pairingRules ?? [],
+        parentA: candidates[i],
+        parentB: candidates[j],
+        playerState: {
+          rank: saveData.player.rank,
+          unlockedRegions: saveData.world.unlockedRegions ?? []
+        }
+      });
+
+      if (preview.reason !== 'no_pairing_rule') {
+        selectedPreview = preview;
+        selectedParents = [candidates[i], candidates[j]];
+        break;
+      }
+    }
+    if (selectedPreview) break;
+  }
+
+  renderBreedingPanel({
+    container: breedingPanel,
+    preview: selectedPreview,
+    parentNames: selectedParents.map(getDisplayNameForSpecies),
+    resultNames: selectedPreview?.resultPool?.map((resultId) => getResultUnit(resultId)?.displayName ?? resultId) ?? []
+  });
+}
+
 function renderActiveCombat(log = '') {
   if (!activeCombat) return;
   renderCombatPanel({
@@ -145,6 +205,7 @@ function clearPlayPanels() {
   combatPanel.innerHTML = '';
   recipePanel.innerHTML = '';
   vaultGardenPanel.innerHTML = '';
+  breedingPanel.innerHTML = '';
   collectionPanel.innerHTML = '';
   activeCombat = null;
   activeRecipeSpeciesId = null;
@@ -173,6 +234,7 @@ function renderRecipeForSpecies(species, expression = null) {
   });
   renderCollectionProgress(refreshedSave);
   renderVaultGarden(refreshedSave);
+  renderBreedingPreview(refreshedSave);
 }
 
 function handleWeatherSelect(weatherId) {
@@ -215,6 +277,7 @@ function handleStartRecipe(species, expression = null) {
   renderRecipeForSpecies(species, expression);
   renderCollectionProgress(nextSave);
   renderVaultGarden(nextSave);
+  renderBreedingPreview(nextSave);
   debugOutput.textContent = JSON.stringify({ timerStarted: timer, activeQuest: nextSave.quests.activeQuest }, null, 2);
 }
 
@@ -236,6 +299,7 @@ function handleClaimRecipe(species) {
   writeSave(nextSave);
   renderRecipeMessage({ container: recipePanel, message: `${resultUnit.displayName} result claimed and saved to the Vault Garden.` });
   renderVaultGarden(nextSave);
+  renderBreedingPreview(nextSave);
   renderCollectionProgress(nextSave);
   debugOutput.textContent = JSON.stringify({ resultUnit, activeQuest: nextSave.quests.activeQuest, collection: nextSave.collection[species.id] }, null, 2);
 }
@@ -344,6 +408,7 @@ function handleCombatAction(actionId) {
     renderRecipeForSpecies(defeatedState.species, defeatedState.expression);
     renderCollectionProgress(nextSave);
     renderVaultGarden(nextSave);
+    renderBreedingPreview(nextSave);
     debugOutput.textContent = JSON.stringify({ reward, activeQuest: nextSave.quests.activeQuest, collection: nextSave.collection[defeatedState.species.id] }, null, 2);
     activeCombat = null;
     return;
@@ -372,6 +437,7 @@ function handleResetSave() {
     renderCurrentMap(activeData, freshSave);
     renderCollectionProgress(freshSave);
     renderVaultGarden(freshSave);
+    renderBreedingPreview(freshSave);
   }
   starterSelection.innerHTML = '';
   panelCopy.textContent = 'Save reset. Press Start Demo again or choose a new starter.';
@@ -416,6 +482,7 @@ startButton?.addEventListener('click', async () => {
     renderEncounterControls({ container: encounterControls, onRoll: handleEncounterRoll });
     renderCollectionProgress(currentSave);
     renderVaultGarden(currentSave);
+    renderBreedingPreview(currentSave);
 
     renderStarterSelection({
       container: starterSelection,
@@ -431,6 +498,7 @@ startButton?.addEventListener('click', async () => {
         renderCurrentMap(data, nextSave);
         renderCollectionProgress(nextSave);
         renderVaultGarden(nextSave);
+        renderBreedingPreview(nextSave);
         panelCopy.textContent = 'Starter saved locally. Change weather, roll encounters, win combat, start a timer, and claim the result.';
         debugOutput.textContent = JSON.stringify({ player: nextSave.player, weather: nextSave.world.weather, activeQuest: nextSave.quests.activeQuest }, null, 2);
       }
