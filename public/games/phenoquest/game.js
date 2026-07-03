@@ -9,7 +9,7 @@ import { renderRecipeMessage, renderRecipePanel } from '../../../src/ui/recipe-u
 import { renderCollectionPanel } from '../../../src/ui/collection-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
 import { addStoredUnit, setStarterChoice } from '../../../src/engine/game-state.js';
-import { loadSave, writeSave } from '../../../src/engine/save.js';
+import { loadSave, resetSave, writeSave } from '../../../src/engine/save.js';
 import { getMap } from '../../../src/engine/maps.js';
 import { applyTransition, movePlayer } from '../../../src/engine/movement.js';
 import { rollEncounter, rollLevel } from '../../../src/engine/encounters.js';
@@ -23,6 +23,7 @@ import { addResultTimer, findResultTimer, refreshResultTimers, removeResultTimer
 import { createTimerResult } from '../../../src/engine/result-factory.js';
 
 const startButton = document.querySelector('#start-button');
+const resetButton = document.querySelector('#reset-save-button');
 const panel = document.querySelector('#game-panel');
 const panelTitle = document.querySelector('#panel-title');
 const panelCopy = document.querySelector('#panel-copy');
@@ -114,6 +115,16 @@ function renderActiveCombat(log = '') {
     log,
     onAction: handleCombatAction
   });
+}
+
+function clearPlayPanels() {
+  encounterResult.innerHTML = '';
+  combatPanel.innerHTML = '';
+  recipePanel.innerHTML = '';
+  collectionPanel.innerHTML = '';
+  activeCombat = null;
+  activeRecipeSpeciesId = null;
+  activeRecipeExpressionId = null;
 }
 
 function renderRecipeForSpecies(species, expression = null) {
@@ -306,6 +317,18 @@ function handleCombatAction(actionId) {
   renderActiveCombat(`${playerTurn.log}\n${opponentTurn.log}`);
 }
 
+function handleResetSave() {
+  const freshSave = resetSave();
+  clearPlayPanels();
+  if (activeData) {
+    renderCurrentMap(activeData, freshSave);
+    renderCollectionProgress(freshSave);
+  }
+  starterSelection.innerHTML = '';
+  panelCopy.textContent = 'Save reset. Press Start Demo again or choose a new starter.';
+  debugOutput.textContent = JSON.stringify(freshSave.player, null, 2);
+}
+
 function bindKeyboardMovement() {
   window.addEventListener('keydown', (event) => {
     const keyMap = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' };
@@ -317,6 +340,7 @@ function bindKeyboardMovement() {
 }
 
 bindKeyboardMovement();
+resetButton?.addEventListener('click', handleResetSave);
 
 startButton?.addEventListener('click', async () => {
   showPanel({ panel, titleEl: panelTitle, copyEl: panelCopy, debugEl: debugOutput, title: 'Seedling Town Demo', copy: 'Loading MVP data...' });
