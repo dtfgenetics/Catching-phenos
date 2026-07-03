@@ -6,6 +6,7 @@ import { renderMovementControls } from '../../../src/ui/movement-ui.js';
 import { renderEncounterControls, renderEncounterResult } from '../../../src/ui/encounter-ui.js';
 import { renderCombatPanel, renderCombatResult } from '../../../src/ui/combat-ui.js';
 import { renderRecipeMessage, renderRecipePanel } from '../../../src/ui/recipe-ui.js';
+import { renderCollectionPanel } from '../../../src/ui/collection-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
 import { addStoredUnit, setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, writeSave } from '../../../src/engine/save.js';
@@ -33,6 +34,7 @@ const encounterControls = document.querySelector('#encounter-controls');
 const encounterResult = document.querySelector('#encounter-result');
 const combatPanel = document.querySelector('#combat-panel');
 const recipePanel = document.querySelector('#recipe-panel');
+const collectionPanel = document.querySelector('#collection-panel');
 const debugOutput = document.querySelector('#debug-output');
 
 let activeData = null;
@@ -93,6 +95,15 @@ function renderCurrentMap(data, saveData) {
   renderMapGrid({ container: mapPreview, map: currentMap, player: saveData.player });
 }
 
+function renderCollectionProgress(saveData = loadSave()) {
+  if (!activeData) return;
+  renderCollectionPanel({
+    container: collectionPanel,
+    collection: saveData.collection,
+    units: getAllUnits(activeData)
+  });
+}
+
 function renderActiveCombat(log = '') {
   if (!activeCombat) return;
   renderCombatPanel({
@@ -125,6 +136,7 @@ function renderRecipeForSpecies(species, expression = null) {
     onRefresh: () => renderRecipeForSpecies(species, expression),
     onClaim: () => handleClaimRecipe(species)
   });
+  renderCollectionProgress(refreshedSave);
 }
 
 function handleStartRecipe(species, expression = null) {
@@ -149,6 +161,7 @@ function handleStartRecipe(species, expression = null) {
 
   writeSave(nextSave);
   renderRecipeForSpecies(species, expression);
+  renderCollectionProgress(nextSave);
   debugOutput.textContent = JSON.stringify({ timerStarted: timer }, null, 2);
 }
 
@@ -168,6 +181,7 @@ function handleClaimRecipe(species) {
 
   writeSave(nextSave);
   renderRecipeMessage({ container: recipePanel, message: `${resultUnit.displayName} result claimed and saved to the Vault Garden.` });
+  renderCollectionProgress(nextSave);
   debugOutput.textContent = JSON.stringify({ resultUnit, collection: nextSave.collection[species.id] }, null, 2);
 }
 
@@ -271,6 +285,7 @@ function handleCombatAction(actionId) {
     const { reward, nextSave } = awardVictory(defeatedState);
     renderCombatResult({ container: combatPanel, message: `${defeatedState.opponent.displayName} was defeated. Earned ${reward.materialCount} field material.` });
     renderRecipeForSpecies(defeatedState.species, defeatedState.expression);
+    renderCollectionProgress(nextSave);
     debugOutput.textContent = JSON.stringify({ reward, collection: nextSave.collection[defeatedState.species.id] }, null, 2);
     activeCombat = null;
     return;
@@ -304,7 +319,7 @@ function bindKeyboardMovement() {
 bindKeyboardMovement();
 
 startButton?.addEventListener('click', async () => {
-  showPanel({ panel, titleEl: panelTitle, copyEl: panelCopy, debugEl: debugOutput, title: 'Seedling Town Demo', copy: 'Loading MVP data...' });
+  showPanel({ panel, titleEl: panelTitle, copyEl: debugOutput, title: 'Seedling Town Demo', copy: 'Loading MVP data...' });
 
   try {
     const data = await loadGameData();
@@ -324,6 +339,7 @@ startButton?.addEventListener('click', async () => {
 
     renderMovementControls({ container: movementControls, onMove: handleMove });
     renderEncounterControls({ container: encounterControls, onRoll: handleEncounterRoll });
+    renderCollectionProgress(loadSave());
 
     renderStarterSelection({
       container: starterSelection,
@@ -335,6 +351,7 @@ startButton?.addEventListener('click', async () => {
 
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderCurrentMap(data, nextSave);
+        renderCollectionProgress(nextSave);
         panelCopy.textContent = 'Starter saved locally. Win combat to earn material, start a timer, and claim the result.';
         debugOutput.textContent = JSON.stringify(nextSave.player, null, 2);
       }
