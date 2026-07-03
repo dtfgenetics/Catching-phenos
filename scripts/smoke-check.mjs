@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { calculateDamage } from '../src/engine/battle.js';
+import { getQuestEventIds } from '../src/engine/quest-events.js';
 
 const requiredJsonFiles = [
   'data/expressions/expression_matrix_mvp.json',
@@ -29,6 +30,7 @@ const requiredModules = [
   'src/engine/inventory.js',
   'src/engine/maps.js',
   'src/engine/movement.js',
+  'src/engine/quest-events.js',
   'src/engine/quests.js',
   'src/engine/recipes.js',
   'src/engine/result-factory.js',
@@ -66,6 +68,10 @@ for (const path of requiredModules) {
   await import(`../${path}`);
   console.log(`OK MODULE: ${path}`);
 }
+
+const questEventIds = getQuestEventIds();
+assert(questEventIds.includes('starter_chosen'), 'Quest events missing starter_chosen.');
+assert(questEventIds.includes('first_result_claimed'), 'Quest events missing first_result_claimed.');
 
 const starters = await readJson('data/phenos/mvp_units.json');
 const extras = await readJson('data/phenos/mvp_units_extra.json');
