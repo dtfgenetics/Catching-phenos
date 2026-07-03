@@ -3,11 +3,14 @@ import { summarizeMvpData, showPanel } from '../../../src/ui/render-summary.js';
 import { renderChosenStarter, renderStarterSelection } from '../../../src/ui/starter-selection-ui.js';
 import { renderMapGrid, renderMapLabel } from '../../../src/ui/map-ui.js';
 import { renderMovementControls } from '../../../src/ui/movement-ui.js';
+import { renderEncounterControls, renderEncounterResult } from '../../../src/ui/encounter-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
 import { setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, writeSave } from '../../../src/engine/save.js';
 import { getMap } from '../../../src/engine/maps.js';
 import { applyTransition, movePlayer } from '../../../src/engine/movement.js';
+import { rollEncounter, rollLevel } from '../../../src/engine/encounters.js';
+import { findExpression } from '../../../src/engine/expression.js';
 
 const startButton = document.querySelector('#start-button');
 const panel = document.querySelector('#game-panel');
@@ -17,6 +20,8 @@ const starterSelection = document.querySelector('#starter-selection');
 const mapLabel = document.querySelector('#map-label');
 const mapPreview = document.querySelector('#map-preview');
 const movementControls = document.querySelector('#movement-controls');
+const encounterControls = document.querySelector('#encounter-controls');
+const encounterResult = document.querySelector('#encounter-result');
 const debugOutput = document.querySelector('#debug-output');
 
 let activeData = null;
@@ -52,6 +57,10 @@ function getAllUnits(data) {
   return [...(data.starters ?? []), ...(data.extraUnits ?? [])];
 }
 
+function getSpecies(data, speciesId) {
+  return getAllUnits(data).find((unit) => unit.id === speciesId) ?? null;
+}
+
 function renderCurrentMap(data, saveData) {
   const currentMap = getMap(data.maps, saveData.player.currentMap);
   renderMapLabel({ container: mapLabel, map: currentMap, player: saveData.player });
@@ -78,6 +87,37 @@ function handleMove(direction) {
     cue: nextSave.world.cue,
     moved: moveResult.moved,
     transition: moveResult.transition?.id ?? null
+  }, null, 2);
+}
+
+function handleEncounterRoll() {
+  if (!activeData) return;
+
+  const saveData = loadSave();
+  const state = {
+    weather: saveData.world.weather,
+    cue: saveData.world.cue,
+    flags: saveData.quests.flags
+  };
+  const encounter = rollEncounter(activeData.encounters, state);
+  const species = encounter ? getSpecies(activeData, encounter.speciesId) : null;
+  const level = encounter ? rollLevel(encounter) : null;
+  const expression = findExpression(activeData.expressions, state.weather, state.cue);
+
+  renderEncounterResult({
+    container: encounterResult,
+    encounter,
+    species,
+    level,
+    expression
+  });
+
+  debugOutput.textContent = JSON.stringify({
+    encounter: encounter?.speciesId ?? null,
+    level,
+    weather: state.weather,
+    cue: state.cue,
+    expression: expression?.id ?? null
   }, null, 2);
 }
 
@@ -130,6 +170,7 @@ startButton?.addEventListener('click', async () => {
     });
 
     renderMovementControls({ container: movementControls, onMove: handleMove });
+    renderEncounterControls({ container: encounterControls, onRoll: handleEncounterRoll });
 
     renderStarterSelection({
       container: starterSelection,
@@ -141,7 +182,7 @@ startButton?.addEventListener('click', async () => {
 
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderCurrentMap(data, nextSave);
-        panelCopy.textContent = 'Starter saved locally. Use the movement buttons or arrow keys to move on the placeholder map.';
+        panelCopy.textContent = 'Starter saved locally. Use the movement buttons or arrow keys to move, then test a field encounter.';
         debugOutput.textContent = JSON.stringify(nextSave.player, null, 2);
       }
     });
