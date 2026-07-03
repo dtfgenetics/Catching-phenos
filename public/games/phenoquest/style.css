@@ -118,6 +118,44 @@ button:focus-visible {
   border: 1px solid rgba(224, 184, 79, 0.45);
 }
 
+.map-label {
+  color: var(--accent);
+  font-weight: 700;
+  margin: 18px 0 8px;
+}
+
+.map-grid {
+  --tile-size: 24px;
+  display: grid;
+  grid-template-columns: repeat(var(--map-width), var(--tile-size));
+  gap: 2px;
+  overflow: auto;
+  max-width: 100%;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.map-tile {
+  width: var(--tile-size);
+  height: var(--tile-size);
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: rgba(155, 211, 106, 0.12);
+  color: var(--gold);
+  font-size: 0.9rem;
+}
+
+.player-tile {
+  background: rgba(224, 184, 79, 0.85);
+  color: #1c1404;
+}
+
+.blocked-tile {
+  background: rgba(0, 0, 0, 0.35);
+}
+
 .hidden {
   display: none;
 }
