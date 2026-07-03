@@ -1,3 +1,6 @@
+import { fetchJson } from '../../../src/data/fetch-json.js';
+import { summarizeMvpData, showPanel } from '../../../src/ui/render-summary.js';
+
 const startButton = document.querySelector('#start-button');
 const panel = document.querySelector('#game-panel');
 const panelTitle = document.querySelector('#panel-title');
@@ -14,49 +17,43 @@ const DATA_PATHS = {
   quests: '../../../data/quests/mvp_quests.json'
 };
 
-async function loadJson(path) {
-  const response = await fetch(path);
-  if (!response.ok) {
-    throw new Error(`Failed to load ${path}: ${response.status}`);
-  }
-  return response.json();
-}
-
 async function loadGameData() {
   const entries = await Promise.all(
-    Object.entries(DATA_PATHS).map(async ([key, path]) => [key, await loadJson(path)])
+    Object.entries(DATA_PATHS).map(async ([key, path]) => [key, await fetchJson(path)])
   );
   return Object.fromEntries(entries);
 }
 
-function summarizeData(data) {
-  const starters = data.starters?.length ?? 0;
-  const extraUnits = data.extraUnits?.length ?? 0;
-  const expressions = data.expressions?.length ?? 0;
-  const quests = data.quests?.length ?? 0;
-  const encounters = data.encounters?.encounters?.length ?? 0;
-
-  return [
-    `Loaded starters: ${starters}`,
-    `Loaded extra units: ${extraUnits}`,
-    `Loaded expression states: ${expressions}`,
-    `Loaded quests: ${quests}`,
-    `Loaded Terp Fields encounters: ${encounters}`
-  ].join('\n');
-}
-
 startButton?.addEventListener('click', async () => {
-  panel?.classList.remove('hidden');
-  panelTitle.textContent = 'Seedling Town Demo';
-  panelCopy.textContent = 'Loading MVP data...';
-  debugOutput.textContent = '';
+  showPanel({
+    panel,
+    titleEl: panelTitle,
+    copyEl: panelCopy,
+    debugEl: debugOutput,
+    title: 'Seedling Town Demo',
+    copy: 'Loading MVP data...'
+  });
 
   try {
     const data = await loadGameData();
-    panelCopy.textContent = 'MVP data loaded. Next step: connect movement, dialogue, battle, timer recipes, and PhenoLog UI.';
-    debugOutput.textContent = summarizeData(data);
+    showPanel({
+      panel,
+      titleEl: panelTitle,
+      copyEl: panelCopy,
+      debugEl: debugOutput,
+      title: 'Seedling Town Demo',
+      copy: 'MVP data loaded. Next step: connect movement, dialogue, battle, timer recipes, and PhenoLog UI.',
+      debug: summarizeMvpData(data)
+    });
   } catch (error) {
-    panelCopy.textContent = 'Data load failed. Check paths and JSON files.';
-    debugOutput.textContent = String(error);
+    showPanel({
+      panel,
+      titleEl: panelTitle,
+      copyEl: panelCopy,
+      debugEl: debugOutput,
+      title: 'Data Load Error',
+      copy: 'Data load failed. Check paths and JSON files.',
+      debug: String(error)
+    });
   }
 });
