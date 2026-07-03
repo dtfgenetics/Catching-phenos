@@ -122,6 +122,7 @@ function renderRecipeForSpecies(species, expression = null) {
     species,
     activeTimer,
     onStart: () => handleStartRecipe(species, expression),
+    onRefresh: () => renderRecipeForSpecies(species, expression),
     onClaim: () => handleClaimRecipe(species)
   });
 }
