@@ -1,9 +1,13 @@
 import { readFile } from 'node:fs/promises';
-import { calculateDamage } from '../src/engine/battle.js';
+import { calculateDamage, createCombatant } from '../src/engine/battle.js';
+import { chooseEnemyAction } from '../src/engine/combat-ai.js';
 import { previewPairing } from '../src/engine/breeding.js';
+import { createDialogueSession, getCurrentDialogueLine } from '../src/engine/dialogue-runner.js';
 import { estimateMarkerQuality, mergeMarkerBias } from '../src/engine/genotype.js';
+import { resolveInteraction } from '../src/engine/interactions.js';
 import { applyQuestEvent, getQuestEventIds } from '../src/engine/quest-events.js';
 import { canAccessSystem, isRankAtLeast } from '../src/engine/progression.js';
+import { addStatus, hasStatus } from '../src/engine/status-effects.js';
 import { pickWeightedWeather } from '../src/engine/weather.js';
 import { createScreenState, isKnownScreen, pushScreen, SCREEN_IDS } from '../src/game/screens.js';
 import { createGameController } from '../src/game/controller.js';
@@ -43,11 +47,14 @@ const requiredModules = [
   'src/engine/breeding.js',
   'src/engine/class-chart.js',
   'src/engine/collection.js',
+  'src/engine/combat-ai.js',
   'src/engine/dialogue.js',
+  'src/engine/dialogue-runner.js',
   'src/engine/encounters.js',
   'src/engine/expression.js',
   'src/engine/game-state.js',
   'src/engine/genotype.js',
+  'src/engine/interactions.js',
   'src/engine/inventory.js',
   'src/engine/lineage-lab.js',
   'src/engine/maps.js',
@@ -62,13 +69,16 @@ const requiredModules = [
   'src/engine/save-export.js',
   'src/engine/save-migration.js',
   'src/engine/starter-selection.js',
+  'src/engine/status-effects.js',
   'src/engine/storage.js',
   'src/engine/timers.js',
   'src/engine/weather.js',
   'src/ui/breeding-ui.js',
   'src/ui/collection-ui.js',
   'src/ui/combat-ui.js',
+  'src/ui/dialogue-box-ui.js',
   'src/ui/encounter-ui.js',
+  'src/ui/interaction-ui.js',
   'src/ui/inventory-ui.js',
   'src/ui/lineage-lab-ui.js',
   'src/ui/map-ui.js',
@@ -114,6 +124,30 @@ assert(controller.saveData.version === defaultSave.version, 'Controller should h
 const exportedSave = exportSave(defaultSave);
 const importedSave = importSave(exportedSave, defaultSave);
 assert(importedSave.version === defaultSave.version, 'Imported save should migrate to current version.');
+
+const dialogueRecords = await readJson('data/dialogue/mvp_dialogue.json');
+const introSession = createDialogueSession(dialogueRecords, 'calyx_intro', defaultSave);
+assert(introSession.active, 'calyx_intro dialogue should start.');
+assert(getCurrentDialogueLine(introSession)?.includes('Vault'), 'Dialogue runner should return current line.');
+
+const seedlingTown = await readJson('data/maps/seedling_town.json');
+const interaction = resolveInteraction({
+  map: seedlingTown,
+  saveData: { ...defaultSave, player: { ...defaultSave.player, position: { x: 7, y: 4 }, facing: 'down' } },
+  direction: 'down'
+});
+assert(interaction.type === 'npc', 'Interaction engine should find Professor Calyx when facing down.');
+
+const sampleUnit = { id: 'sample', displayName: 'Sample', classes: ['fruit'], baseStats: { vigor: 10, power: 5, terps: 5, roots: 5, speed: 5, stability: 5 } };
+const combatant = createCombatant(sampleUnit, 1);
+const statusCombatant = addStatus(combatant, 'unstable');
+assert(hasStatus(statusCombatant, 'unstable'), 'Status helper should add unstable status.');
+const aiAction = chooseEnemyAction({
+  opponent: combatant,
+  player: combatant,
+  actions: [{ id: 'weak', power: 1 }, { id: 'strong', power: 5 }]
+});
+assert(aiAction.id === 'strong', 'Combat AI should choose highest power action in basic case.');
 
 const questEventIds = getQuestEventIds();
 assert(questEventIds.includes('starter_chosen'), 'Quest events missing starter_chosen.');
@@ -219,6 +253,8 @@ assert(html.includes('quest-panel'), 'Game page missing quest panel container.')
 assert(html.includes('weather-panel'), 'Game page missing weather panel container.');
 assert(html.includes('starter-selection'), 'Game page missing starter selection container.');
 assert(html.includes('map-preview'), 'Game page missing map preview container.');
+assert(html.includes('interaction-panel'), 'Game page missing interaction panel container.');
+assert(html.includes('dialogue-panel'), 'Game page missing dialogue panel container.');
 assert(html.includes('encounter-controls'), 'Game page missing encounter controls container.');
 assert(html.includes('combat-panel'), 'Game page missing combat panel container.');
 assert(html.includes('recipe-panel'), 'Game page missing recipe panel container.');
