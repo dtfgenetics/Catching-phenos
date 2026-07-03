@@ -46,6 +46,7 @@ const requiredModules = [
   'src/engine/starter-selection.js',
   'src/engine/timers.js',
   'src/engine/weather.js',
+  'src/ui/breeding-ui.js',
   'src/ui/collection-ui.js',
   'src/ui/combat-ui.js',
   'src/ui/encounter-ui.js',
@@ -170,6 +171,7 @@ assert(html.includes('encounter-controls'), 'Game page missing encounter control
 assert(html.includes('combat-panel'), 'Game page missing combat panel container.');
 assert(html.includes('recipe-panel'), 'Game page missing recipe panel container.');
 assert(html.includes('vault-garden-panel'), 'Game page missing Vault Garden panel container.');
+assert(html.includes('breeding-panel'), 'Game page missing breeding panel container.');
 assert(html.includes('collection-panel'), 'Game page missing collection panel container.');
 
 console.log('Smoke check complete.');
