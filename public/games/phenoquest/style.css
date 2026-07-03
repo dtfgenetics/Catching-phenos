@@ -150,6 +150,19 @@ button:focus-visible {
 .player-tile {
   background: rgba(224, 184, 79, 0.85);
   color: #1c1404;
+  font-weight: 900;
+}
+
+.npc-tile {
+  background: rgba(155, 211, 106, 0.45);
+  color: #f6f0d8;
+  font-weight: 900;
+}
+
+.object-tile {
+  background: rgba(98, 172, 217, 0.35);
+  color: #f6f0d8;
+  font-weight: 900;
 }
 
 .blocked-tile {
