@@ -97,6 +97,7 @@ assert(zeroDamage === 0, 'Zero-power actions should not deal damage.');
 
 const html = await readFile('public/games/phenoquest/index.html', 'utf8');
 assert(html.includes('game.js'), 'Game page does not reference game.js.');
+assert(html.includes('reset-save-button'), 'Game page missing reset save button.');
 assert(html.includes('starter-selection'), 'Game page missing starter selection container.');
 assert(html.includes('map-preview'), 'Game page missing map preview container.');
 assert(html.includes('encounter-controls'), 'Game page missing encounter controls container.');
