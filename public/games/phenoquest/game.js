@@ -10,8 +10,13 @@ import { renderCollectionPanel } from '../../../src/ui/collection-ui.js';
 import { renderVaultGardenPanel } from '../../../src/ui/vault-garden-ui.js';
 import { renderWeatherPanel } from '../../../src/ui/weather-ui.js';
 import { renderBreedingPanel } from '../../../src/ui/breeding-ui.js';
+import { renderQuestPanel } from '../../../src/ui/quest-ui.js';
+import { renderInventoryPanel } from '../../../src/ui/inventory-ui.js';
+import { renderPhenoLogPanel } from '../../../src/ui/phenolog-ui.js';
+import { renderLineageLabPanel } from '../../../src/ui/lineage-lab-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
 import { previewPairing } from '../../../src/engine/breeding.js';
+import { getLineagePreviews } from '../../../src/engine/lineage-lab.js';
 import { addStoredUnit, setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, resetSave, writeSave } from '../../../src/engine/save.js';
 import { getMap } from '../../../src/engine/maps.js';
@@ -32,6 +37,7 @@ const resetButton = document.querySelector('#reset-save-button');
 const panel = document.querySelector('#game-panel');
 const panelTitle = document.querySelector('#panel-title');
 const panelCopy = document.querySelector('#panel-copy');
+const questPanel = document.querySelector('#quest-panel');
 const weatherPanel = document.querySelector('#weather-panel');
 const starterSelection = document.querySelector('#starter-selection');
 const mapLabel = document.querySelector('#map-label');
@@ -41,9 +47,12 @@ const encounterControls = document.querySelector('#encounter-controls');
 const encounterResult = document.querySelector('#encounter-result');
 const combatPanel = document.querySelector('#combat-panel');
 const recipePanel = document.querySelector('#recipe-panel');
+const inventoryPanel = document.querySelector('#inventory-panel');
 const vaultGardenPanel = document.querySelector('#vault-garden-panel');
 const breedingPanel = document.querySelector('#breeding-panel');
+const lineageLabPanel = document.querySelector('#lineage-lab-panel');
 const collectionPanel = document.querySelector('#collection-panel');
+const phenoLogPanel = document.querySelector('#phenolog-panel');
 const debugOutput = document.querySelector('#debug-output');
 
 let activeData = null;
@@ -116,6 +125,10 @@ function renderCurrentMap(data, saveData) {
   renderMapGrid({ container: mapPreview, map: currentMap, player: saveData.player });
 }
 
+function renderQuestStatus(saveData = loadSave()) {
+  renderQuestPanel({ container: questPanel, quests: saveData.quests });
+}
+
 function renderWeatherControls(saveData = loadSave()) {
   if (!activeData) return;
   renderWeatherPanel({
@@ -126,10 +139,23 @@ function renderWeatherControls(saveData = loadSave()) {
   });
 }
 
+function renderInventory(saveData = loadSave()) {
+  renderInventoryPanel({ container: inventoryPanel, inventory: saveData.inventory });
+}
+
 function renderCollectionProgress(saveData = loadSave()) {
   if (!activeData) return;
   renderCollectionPanel({
     container: collectionPanel,
+    collection: saveData.collection,
+    units: getAllUnits(activeData)
+  });
+}
+
+function renderPhenoLog(saveData = loadSave()) {
+  if (!activeData) return;
+  renderPhenoLogPanel({
+    container: phenoLogPanel,
     collection: saveData.collection,
     units: getAllUnits(activeData)
   });
@@ -188,6 +214,30 @@ function renderBreedingPreview(saveData = loadSave()) {
   });
 }
 
+function renderLineageLab(saveData = loadSave()) {
+  if (!activeData) return;
+  const previews = getLineagePreviews({
+    saveData,
+    pairingRules: activeData.pairingRules ?? []
+  });
+
+  renderLineageLabPanel({
+    container: lineageLabPanel,
+    previews,
+    getName: getDisplayNameForSpecies
+  });
+}
+
+function renderPlayerPanels(saveData = loadSave()) {
+  renderQuestStatus(saveData);
+  renderInventory(saveData);
+  renderCollectionProgress(saveData);
+  renderPhenoLog(saveData);
+  renderVaultGarden(saveData);
+  renderBreedingPreview(saveData);
+  renderLineageLab(saveData);
+}
+
 function renderActiveCombat(log = '') {
   if (!activeCombat) return;
   renderCombatPanel({
@@ -204,9 +254,12 @@ function clearPlayPanels() {
   encounterResult.innerHTML = '';
   combatPanel.innerHTML = '';
   recipePanel.innerHTML = '';
+  inventoryPanel.innerHTML = '';
   vaultGardenPanel.innerHTML = '';
   breedingPanel.innerHTML = '';
+  lineageLabPanel.innerHTML = '';
   collectionPanel.innerHTML = '';
+  phenoLogPanel.innerHTML = '';
   activeCombat = null;
   activeRecipeSpeciesId = null;
   activeRecipeExpressionId = null;
@@ -232,9 +285,7 @@ function renderRecipeForSpecies(species, expression = null) {
     onRefresh: () => renderRecipeForSpecies(species, expression),
     onClaim: () => handleClaimRecipe(species)
   });
-  renderCollectionProgress(refreshedSave);
-  renderVaultGarden(refreshedSave);
-  renderBreedingPreview(refreshedSave);
+  renderPlayerPanels(refreshedSave);
 }
 
 function handleWeatherSelect(weatherId) {
@@ -275,9 +326,7 @@ function handleStartRecipe(species, expression = null) {
 
   writeSave(nextSave);
   renderRecipeForSpecies(species, expression);
-  renderCollectionProgress(nextSave);
-  renderVaultGarden(nextSave);
-  renderBreedingPreview(nextSave);
+  renderPlayerPanels(nextSave);
   debugOutput.textContent = JSON.stringify({ timerStarted: timer, activeQuest: nextSave.quests.activeQuest }, null, 2);
 }
 
@@ -298,9 +347,7 @@ function handleClaimRecipe(species) {
 
   writeSave(nextSave);
   renderRecipeMessage({ container: recipePanel, message: `${resultUnit.displayName} result claimed and saved to the Vault Garden.` });
-  renderVaultGarden(nextSave);
-  renderBreedingPreview(nextSave);
-  renderCollectionProgress(nextSave);
+  renderPlayerPanels(nextSave);
   debugOutput.textContent = JSON.stringify({ resultUnit, activeQuest: nextSave.quests.activeQuest, collection: nextSave.collection[species.id] }, null, 2);
 }
 
@@ -406,9 +453,7 @@ function handleCombatAction(actionId) {
     const { reward, nextSave } = awardVictory(defeatedState);
     renderCombatResult({ container: combatPanel, message: `${defeatedState.opponent.displayName} was defeated. Earned ${reward.materialCount} field material.` });
     renderRecipeForSpecies(defeatedState.species, defeatedState.expression);
-    renderCollectionProgress(nextSave);
-    renderVaultGarden(nextSave);
-    renderBreedingPreview(nextSave);
+    renderPlayerPanels(nextSave);
     debugOutput.textContent = JSON.stringify({ reward, activeQuest: nextSave.quests.activeQuest, collection: nextSave.collection[defeatedState.species.id] }, null, 2);
     activeCombat = null;
     return;
@@ -435,9 +480,7 @@ function handleResetSave() {
   if (activeData) {
     renderWeatherControls(freshSave);
     renderCurrentMap(activeData, freshSave);
-    renderCollectionProgress(freshSave);
-    renderVaultGarden(freshSave);
-    renderBreedingPreview(freshSave);
+    renderPlayerPanels(freshSave);
   }
   starterSelection.innerHTML = '';
   panelCopy.textContent = 'Save reset. Press Start Demo again or choose a new starter.';
@@ -480,9 +523,7 @@ startButton?.addEventListener('click', async () => {
     renderWeatherControls(currentSave);
     renderMovementControls({ container: movementControls, onMove: handleMove });
     renderEncounterControls({ container: encounterControls, onRoll: handleEncounterRoll });
-    renderCollectionProgress(currentSave);
-    renderVaultGarden(currentSave);
-    renderBreedingPreview(currentSave);
+    renderPlayerPanels(currentSave);
 
     renderStarterSelection({
       container: starterSelection,
@@ -496,9 +537,7 @@ startButton?.addEventListener('click', async () => {
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderWeatherControls(nextSave);
         renderCurrentMap(data, nextSave);
-        renderCollectionProgress(nextSave);
-        renderVaultGarden(nextSave);
-        renderBreedingPreview(nextSave);
+        renderPlayerPanels(nextSave);
         panelCopy.textContent = 'Starter saved locally. Change weather, roll encounters, win combat, start a timer, and claim the result.';
         debugOutput.textContent = JSON.stringify({ player: nextSave.player, weather: nextSave.world.weather, activeQuest: nextSave.quests.activeQuest }, null, 2);
       }
