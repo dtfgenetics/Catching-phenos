@@ -156,6 +156,22 @@ button:focus-visible {
   background: rgba(0, 0, 0, 0.35);
 }
 
+.movement-controls {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.movement-controls div {
+  display: flex;
+  gap: 8px;
+}
+
+.movement-controls button {
+  min-width: 78px;
+}
+
 .hidden {
   display: none;
 }
