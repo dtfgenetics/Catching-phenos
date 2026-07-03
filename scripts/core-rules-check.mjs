@@ -1,6 +1,6 @@
 import { createCombatant, resolveAbility } from '../src/engine/battle.js';
 import { chooseEnemyAction } from '../src/engine/combat-ai.js';
-import { createDialogueSession, getCurrentDialogueLine } from '../src/engine/dialogue-runner.js';
+import { applyDialogueEffects, createDialogueSession, getCurrentDialogueLine, selectDialogueChoice } from '../src/engine/dialogue-runner.js';
 import { resolveInteraction } from '../src/engine/interactions.js';
 import { hasStatus, tickStatuses } from '../src/engine/status-effects.js';
 import { createDefaultSave } from '../src/engine/save.js';
@@ -22,6 +22,12 @@ const abilities = await readJson('data/moves/mvp_abilities.json');
 const introSession = createDialogueSession(dialogueRecords, 'calyx_intro', defaultSave);
 assert(introSession.active, 'calyx_intro should start.');
 assert(getCurrentDialogueLine(introSession)?.includes('Vault'), 'calyx_intro should return a line.');
+
+const vaultChoice = selectDialogueChoice(introSession, dialogueRecords, 'ask_vault');
+assert(vaultChoice.choice?.setsFlag === 'asked_about_vault', 'ask_vault choice should set asked_about_vault flag.');
+assert(vaultChoice.session.record?.id === 'calyx_vault_explain', 'ask_vault should route to calyx_vault_explain.');
+const choiceSave = applyDialogueEffects(defaultSave, vaultChoice.choice);
+assert(choiceSave.quests.flags.asked_about_vault === true, 'Dialogue choice effect should write its flag.');
 
 const interaction = resolveInteraction({
   map: seedlingTown,
