@@ -1,4 +1,4 @@
-export function renderRecipePanel({ container, entry, species, activeTimer, onStart, onClaim }) {
+export function renderRecipePanel({ container, entry, species, activeTimer, onStart, onClaim, onRefresh }) {
   if (!container) return;
 
   if (!entry || !species) {
@@ -16,12 +16,14 @@ export function renderRecipePanel({ container, entry, species, activeTimer, onSt
       <span>Material: ${entry.materialsOwned}/${entry.materialsRequired}</span>
       <span>Status: ${activeTimer?.status ?? (canStart ? 'ready_to_start' : 'needs_material')}</span>
       <button type="button" id="start-recipe-button" ${canStart ? '' : 'disabled'}>Start Timer</button>
+      <button type="button" id="check-recipe-button">Check Timer</button>
       <button type="button" id="claim-recipe-button" ${ready ? '' : 'disabled'}>Claim Result</button>
-      ${active ? '<small>Timer active. Refresh or keep playing until ready.</small>' : ''}
+      ${active ? '<small>Timer active. Use Check Timer after the timer duration passes.</small>' : ''}
     </div>
   `;
 
   container.querySelector('#start-recipe-button')?.addEventListener('click', () => onStart?.());
+  container.querySelector('#check-recipe-button')?.addEventListener('click', () => onRefresh?.());
   container.querySelector('#claim-recipe-button')?.addEventListener('click', () => onClaim?.());
 }
 
