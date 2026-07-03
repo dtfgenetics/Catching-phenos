@@ -12,6 +12,12 @@ export function createDefaultSave() {
       starterChoice: null
     },
     team: [],
+    vaultGarden: {
+      slotsUnlocked: GAME_CONFIG.mvp.cloneSlotsAtStart,
+      activeTimers: [],
+      rootedUnits: [],
+      keeperIds: []
+    },
     inventory: {
       items: [],
       materials: []
@@ -41,7 +47,16 @@ export function loadSave() {
   if (!raw) return createDefaultSave();
 
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return {
+      ...createDefaultSave(),
+      ...parsed,
+      player: { ...createDefaultSave().player, ...parsed.player },
+      vaultGarden: { ...createDefaultSave().vaultGarden, ...parsed.vaultGarden },
+      inventory: { ...createDefaultSave().inventory, ...parsed.inventory },
+      quests: { ...createDefaultSave().quests, ...parsed.quests },
+      world: { ...createDefaultSave().world, ...parsed.world }
+    };
   } catch {
     return createDefaultSave();
   }
