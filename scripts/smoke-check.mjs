@@ -16,6 +16,30 @@ const requiredJsonFiles = [
   'data/maps/aroma_trial_greenhouse.json'
 ];
 
+const requiredModules = [
+  'src/engine/battle.js',
+  'src/engine/battle-rewards.js',
+  'src/engine/class-chart.js',
+  'src/engine/collection.js',
+  'src/engine/dialogue.js',
+  'src/engine/encounters.js',
+  'src/engine/expression.js',
+  'src/engine/game-state.js',
+  'src/engine/inventory.js',
+  'src/engine/maps.js',
+  'src/engine/movement.js',
+  'src/engine/quests.js',
+  'src/engine/recipes.js',
+  'src/engine/save.js',
+  'src/engine/starter-selection.js',
+  'src/engine/timers.js',
+  'src/ui/encounter-ui.js',
+  'src/ui/map-ui.js',
+  'src/ui/movement-ui.js',
+  'src/ui/render-summary.js',
+  'src/ui/starter-selection-ui.js'
+];
+
 async function readJson(path) {
   const raw = await readFile(path, 'utf8');
   return JSON.parse(raw);
@@ -30,6 +54,11 @@ function assert(condition, message) {
 for (const path of requiredJsonFiles) {
   await readJson(path);
   console.log(`OK JSON: ${path}`);
+}
+
+for (const path of requiredModules) {
+  await import(`../${path}`);
+  console.log(`OK MODULE: ${path}`);
 }
 
 const starters = await readJson('data/phenos/mvp_units.json');
@@ -54,5 +83,11 @@ for (const unit of allUnits) {
     assert(abilityIds.has(abilityId), `${unit.id} references missing ability: ${abilityId}`);
   }
 }
+
+const html = await readFile('public/games/phenoquest/index.html', 'utf8');
+assert(html.includes('game.js'), 'Game page does not reference game.js.');
+assert(html.includes('starter-selection'), 'Game page missing starter selection container.');
+assert(html.includes('map-preview'), 'Game page missing map preview container.');
+assert(html.includes('encounter-controls'), 'Game page missing encounter controls container.');
 
 console.log('Smoke check complete.');
