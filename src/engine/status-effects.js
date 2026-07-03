@@ -22,6 +22,18 @@ export const STATUS_EFFECTS = {
     displayName: 'Locked Out',
     description: 'Team Lockout interference state.',
     duration: 2
+  },
+  shielded: {
+    id: 'shielded',
+    displayName: 'Shielded',
+    description: 'Reduces pressure from the next exchange.',
+    duration: 1
+  },
+  aroma_charged: {
+    id: 'aroma_charged',
+    displayName: 'Aroma Charged',
+    description: 'Improves aroma-style reward potential.',
+    duration: 2
   }
 };
 
