@@ -17,6 +17,7 @@ export function createDefaultSave() {
     vaultGarden: {
       slotsUnlocked: GAME_CONFIG.mvp.cloneSlotsAtStart,
       activeTimers: [],
+      lineageTimers: [],
       rootedUnits: [],
       keeperIds: []
     },
