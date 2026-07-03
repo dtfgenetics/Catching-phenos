@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../game/config.js';
 import { migrateSave } from './save-migration.js';
+import { safeGetItem, safeSetItem } from './storage.js';
 
 export function createDefaultSave() {
   return {
@@ -45,7 +46,7 @@ export function createDefaultSave() {
 }
 
 export function loadSave() {
-  const raw = localStorage.getItem(GAME_CONFIG.storage.saveKey);
+  const raw = safeGetItem(GAME_CONFIG.storage.saveKey);
   if (!raw) return createDefaultSave();
 
   try {
@@ -56,7 +57,7 @@ export function loadSave() {
 }
 
 export function writeSave(saveData) {
-  localStorage.setItem(GAME_CONFIG.storage.saveKey, JSON.stringify(saveData));
+  safeSetItem(GAME_CONFIG.storage.saveKey, JSON.stringify(saveData));
   return saveData;
 }
 
