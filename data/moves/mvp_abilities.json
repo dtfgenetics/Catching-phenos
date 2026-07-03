@@ -77,6 +77,17 @@
     "description": "High-force action with a Stability cost."
   },
   {
+    "id": "pressure_lunge",
+    "displayName": "Pressure Lunge",
+    "class": "gas",
+    "category": "strike",
+    "power": 6,
+    "cost": 1,
+    "accuracy": 90,
+    "effect": "none",
+    "description": "A direct pressure action for Gas-class units."
+  },
+  {
     "id": "skunk_spray",
     "displayName": "Skunk Spray",
     "class": "skunk",
@@ -86,6 +97,17 @@
     "accuracy": 90,
     "effect": "lower_target_terps",
     "description": "Disrupts the target's special output."
+  },
+  {
+    "id": "darting_bite",
+    "displayName": "Darting Bite",
+    "class": "skunk",
+    "category": "strike",
+    "power": 5,
+    "cost": 0,
+    "accuracy": 95,
+    "effect": "none",
+    "description": "A quick basic strike for Skunk-class units."
   },
   {
     "id": "sticky_tongue",
@@ -99,6 +121,17 @@
     "description": "Slows the target."
   },
   {
+    "id": "aroma_bubble",
+    "displayName": "Aroma Bubble",
+    "class": "fruit",
+    "category": "special",
+    "power": 5,
+    "cost": 1,
+    "accuracy": 95,
+    "effect": "small_chance_aroma_bonus",
+    "description": "A hybrid special action with light expression synergy."
+  },
+  {
     "id": "lockout_clamp",
     "displayName": "Lockout Clamp",
     "class": "synthetic",
@@ -108,5 +141,16 @@
     "accuracy": 85,
     "effect": "block_items_one_turn",
     "description": "Prevents item use for a short time."
+  },
+  {
+    "id": "drain_pulse",
+    "displayName": "Drain Pulse",
+    "class": "synthetic",
+    "category": "special",
+    "power": 5,
+    "cost": 1,
+    "accuracy": 90,
+    "effect": "target_stability_down",
+    "description": "A synthetic pressure action that targets Stability."
   }
 ]
