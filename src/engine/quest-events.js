@@ -2,7 +2,8 @@ const QUEST_EVENT_MAP = {
   starter_chosen: {
     activeQuest: 'choose_your_echo',
     nextQuest: 'first_field_test',
-    flag: 'starter_chosen'
+    flag: 'starter_chosen',
+    extraFlags: ['terp_fields_access']
   },
   first_battle_won: {
     activeQuest: 'first_field_test',
@@ -17,7 +18,10 @@ const QUEST_EVENT_MAP = {
   first_result_claimed: {
     activeQuest: 'root_first_unit',
     nextQuest: 'nova_challenge',
-    flag: 'first_result_claimed'
+    flag: 'first_result_claimed',
+    playerRank: 'field_scout',
+    unlockRegions: ['terp_fields'],
+    extraFlags: ['lineage_preview_unlocked']
   },
   signal_clamp_cleared: {
     activeQuest: 'signal_clamp',
@@ -27,9 +31,29 @@ const QUEST_EVENT_MAP = {
   aroma_trial_complete: {
     activeQuest: 'aroma_trial',
     nextQuest: 'demo_complete',
-    flag: 'aroma_trial_complete'
+    flag: 'aroma_trial_complete',
+    playerRank: 'pheno_hunter'
   }
 };
+
+function applyExtraFlags(flags, event) {
+  const output = { ...flags, [event.flag]: true };
+  for (const flag of event.extraFlags ?? []) {
+    output[flag] = true;
+  }
+  return output;
+}
+
+function applyUnlockedRegions(world, event) {
+  const unlockedRegions = new Set(world.unlockedRegions ?? []);
+  for (const region of event.unlockRegions ?? []) {
+    unlockedRegions.add(region);
+  }
+  return {
+    ...world,
+    unlockedRegions: Array.from(unlockedRegions)
+  };
+}
 
 export function applyQuestEvent(saveData, eventId) {
   const event = QUEST_EVENT_MAP[eventId];
@@ -42,14 +66,16 @@ export function applyQuestEvent(saveData, eventId) {
 
   return {
     ...saveData,
+    player: {
+      ...saveData.player,
+      rank: event.playerRank ?? saveData.player.rank
+    },
+    world: applyUnlockedRegions(saveData.world, event),
     quests: {
       ...saveData.quests,
       activeQuest: saveData.quests.activeQuest === event.activeQuest ? event.nextQuest : saveData.quests.activeQuest,
       completed: Array.from(completed),
-      flags: {
-        ...saveData.quests.flags,
-        [event.flag]: true
-      }
+      flags: applyExtraFlags(saveData.quests.flags, event)
     }
   };
 }
