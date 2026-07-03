@@ -65,6 +65,20 @@ export function addMaterials(collection, species, amount, expressionId = null) {
   };
 }
 
+export function spendMaterials(collection, speciesId, amount) {
+  const entry = getOrCreateEntry(collection, speciesId, amount);
+  const materialsOwned = Math.max(0, entry.materialsOwned - amount);
+
+  return {
+    ...collection,
+    [speciesId]: {
+      ...entry,
+      materialsOwned,
+      recipeUnlocked: materialsOwned >= entry.materialsRequired
+    }
+  };
+}
+
 export function addRootedResult(collection, speciesId, trait = null, expressionId = null, isKeeper = false) {
   const entry = getOrCreateEntry(collection, speciesId, 1);
   const knownTraits = trait && !entry.knownTraits.includes(trait)
