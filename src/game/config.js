@@ -22,6 +22,13 @@ export const GAME_CONFIG = {
     quests: '/data/quests/mvp_quests.json',
     dialogue: '/data/dialogue/mvp_dialogue.json',
     starterSlots: '/data/starter_slots.json',
+    weatherStates: '/data/weather/weather_states.json',
+    genotypeMarkers: '/data/breeding/genotype_markers.json',
+    pairingRules: '/data/breeding/pairing_rules_mvp.json',
+    resultUnits: '/data/breeding/result_units_mvp.json',
+    fileManifest: '/data/system/file_manifest.json',
+    assetManifest: '/data/system/asset_manifest.json',
+    mechanicRegistry: '/data/system/mechanic_registry.json',
     maps: [
       '/data/maps/seedling_town.json',
       '/data/maps/greenhouse.json',
