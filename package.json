@@ -7,8 +7,9 @@
     "smoke": "node scripts/smoke-check.mjs",
     "compile": "node scripts/compile-check.mjs",
     "contracts": "node scripts/data-contract-check.mjs",
+    "rules": "node scripts/core-rules-check.mjs",
     "audit": "node scripts/repo-audit.mjs",
-    "check": "npm run audit && npm run contracts && npm run smoke && npm run compile",
+    "check": "npm run audit && npm run contracts && npm run rules && npm run smoke && npm run compile",
     "dev": "node scripts/dev-server.mjs"
   }
 }
