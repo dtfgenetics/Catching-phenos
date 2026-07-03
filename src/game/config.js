@@ -19,6 +19,14 @@ export const GAME_CONFIG = {
     encounters: '/data/encounters/terp_fields.json',
     items: '/data/items/mvp_items.json',
     abilities: '/data/moves/mvp_abilities.json',
-    quests: '/data/quests/mvp_quests.json'
+    quests: '/data/quests/mvp_quests.json',
+    dialogue: '/data/dialogue/mvp_dialogue.json',
+    starterSlots: '/data/starter_slots.json',
+    maps: [
+      '/data/maps/seedling_town.json',
+      '/data/maps/greenhouse.json',
+      '/data/maps/terp_fields.json',
+      '/data/maps/aroma_trial_greenhouse.json'
+    ]
   }
 };
