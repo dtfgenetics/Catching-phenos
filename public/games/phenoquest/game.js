@@ -24,7 +24,7 @@ import { loadSave, resetSave, writeSave } from '../../../src/engine/save.js';
 import { getMap } from '../../../src/engine/maps.js';
 import { applyTransition, movePlayer } from '../../../src/engine/movement.js';
 import { resolveInteraction } from '../../../src/engine/interactions.js';
-import { applyDialogueEffects, advanceDialogueSession, createDialogueSession } from '../../../src/engine/dialogue-runner.js';
+import { applyDialogueEffects, advanceDialogueSession, createDialogueSession, selectDialogueChoice } from '../../../src/engine/dialogue-runner.js';
 import { chooseEnemyAction } from '../../../src/engine/combat-ai.js';
 import { rollEncounter, rollLevel } from '../../../src/engine/encounters.js';
 import { findExpression, getExpressionRewardTag } from '../../../src/engine/expression.js';
@@ -158,7 +158,8 @@ function renderDialogueSession() {
     container: dialoguePanel,
     session: activeDialogueSession,
     onNext: handleDialogueNext,
-    onClose: handleDialogueClose
+    onClose: handleDialogueClose,
+    onChoice: handleDialogueChoice
   });
 }
 
@@ -459,6 +460,21 @@ function handleDialogueNext() {
   writeSave(nextSave);
   renderPlayerPanels(nextSave);
   renderDialogueSession();
+}
+
+function handleDialogueChoice(choiceId) {
+  if (!activeData || !activeDialogueSession) return;
+
+  const selection = selectDialogueChoice(activeDialogueSession, activeData.dialogue, choiceId);
+  if (!selection.choice) return;
+
+  const saveData = loadSave();
+  const nextSave = applyDialogueEffects(saveData, selection.choice);
+  writeSave(nextSave);
+  activeDialogueSession = selection.session;
+  renderPlayerPanels(nextSave);
+  renderDialogueSession();
+  debugOutput.textContent = JSON.stringify({ choice: selection.choice.id, dialogue: activeDialogueSession.reason }, null, 2);
 }
 
 function handleDialogueClose() {
