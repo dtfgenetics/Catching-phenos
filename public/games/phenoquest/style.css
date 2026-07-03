@@ -172,6 +172,18 @@ button:focus-visible {
   min-width: 78px;
 }
 
+.encounter-controls {
+  display: grid;
+  gap: 6px;
+  margin: 18px 0;
+}
+
+.helper-text {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 .hidden {
   display: none;
 }
