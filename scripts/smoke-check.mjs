@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { calculateDamage } from '../src/engine/battle.js';
+import { previewPairing } from '../src/engine/breeding.js';
 import { getQuestEventIds } from '../src/engine/quest-events.js';
+import { pickWeightedWeather } from '../src/engine/weather.js';
 
 const requiredJsonFiles = [
   'data/expressions/expression_matrix_mvp.json',
@@ -15,12 +17,16 @@ const requiredJsonFiles = [
   'data/maps/seedling_town.json',
   'data/maps/greenhouse.json',
   'data/maps/terp_fields.json',
-  'data/maps/aroma_trial_greenhouse.json'
+  'data/maps/aroma_trial_greenhouse.json',
+  'data/weather/weather_states.json',
+  'data/breeding/genotype_markers.json',
+  'data/breeding/pairing_rules_mvp.json'
 ];
 
 const requiredModules = [
   'src/engine/battle.js',
   'src/engine/battle-rewards.js',
+  'src/engine/breeding.js',
   'src/engine/class-chart.js',
   'src/engine/collection.js',
   'src/engine/dialogue.js',
@@ -38,6 +44,7 @@ const requiredModules = [
   'src/engine/save.js',
   'src/engine/starter-selection.js',
   'src/engine/timers.js',
+  'src/engine/weather.js',
   'src/ui/collection-ui.js',
   'src/ui/combat-ui.js',
   'src/ui/encounter-ui.js',
@@ -83,9 +90,23 @@ assert(unitIds.has('mango_puff'), 'Missing mango_puff.');
 assert(unitIds.has('kush_cub'), 'Missing kush_cub.');
 assert(unitIds.has('frostling'), 'Missing frostling.');
 
+const weatherStates = await readJson('data/weather/weather_states.json');
+const weatherIds = new Set(weatherStates.map((weather) => weather.id));
+assert(weatherIds.has('clear_bloom'), 'Missing clear_bloom weather.');
+assert(pickWeightedWeather(weatherStates, () => 0)?.id, 'Weighted weather picker returned no state.');
+
 const encounterTable = await readJson('data/encounters/terp_fields.json');
 for (const encounter of encounterTable.encounters) {
   assert(unitIds.has(encounter.speciesId), `Encounter references missing unit: ${encounter.speciesId}`);
+  for (const weatherId of encounter.weather ?? []) {
+    assert(weatherIds.has(weatherId), `Encounter references missing weather: ${weatherId}`);
+  }
+}
+
+for (const unit of allUnits) {
+  for (const weatherId of unit.recipe?.preferredWeather ?? []) {
+    assert(weatherIds.has(weatherId), `${unit.id} recipe references missing weather: ${weatherId}`);
+  }
 }
 
 const abilities = await readJson('data/moves/mvp_abilities.json');
@@ -95,6 +116,28 @@ for (const unit of allUnits) {
     assert(abilityIds.has(abilityId), `${unit.id} references missing ability: ${abilityId}`);
   }
 }
+
+const genotypeMarkers = await readJson('data/breeding/genotype_markers.json');
+const markerIds = new Set(genotypeMarkers.map((marker) => marker.id));
+assert(markerIds.has('TERP'), 'Missing TERP marker.');
+assert(markerIds.has('STABILITY'), 'Missing STABILITY marker.');
+
+const pairingRules = await readJson('data/breeding/pairing_rules_mvp.json');
+for (const rule of pairingRules) {
+  assert(unitIds.has(rule.parentA), `Pairing rule references missing parentA: ${rule.parentA}`);
+  assert(unitIds.has(rule.parentB), `Pairing rule references missing parentB: ${rule.parentB}`);
+  for (const markerId of Object.keys(rule.markerBias ?? {})) {
+    assert(markerIds.has(markerId), `Pairing rule references missing marker: ${markerId}`);
+  }
+}
+
+const pairingPreview = previewPairing({
+  rules: pairingRules,
+  parentA: 'mango_puff',
+  parentB: 'terp_toad',
+  playerState: { rank: 'field_scout', unlockedRegions: ['terp_fields'] }
+});
+assert(pairingPreview.allowed, 'Expected mango_puff x terp_toad preview to be allowed for field_scout in terp_fields.');
 
 const sampleAttacker = { classes: ['fruit'], stats: { power: 5, terps: 5 } };
 const sampleDefender = { classes: ['skunk'], stats: { roots: 5 } };
