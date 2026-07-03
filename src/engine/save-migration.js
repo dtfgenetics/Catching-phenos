@@ -1,5 +1,3 @@
-import { createDefaultSave } from './save.js';
-
 export function mergeDeep(defaultValue, savedValue) {
   if (Array.isArray(defaultValue)) {
     return Array.isArray(savedValue) ? savedValue : defaultValue;
@@ -19,8 +17,7 @@ export function mergeDeep(defaultValue, savedValue) {
   return savedValue ?? defaultValue;
 }
 
-export function migrateSave(rawSave) {
-  const defaults = createDefaultSave();
+export function migrateSave(rawSave, defaults) {
   const repaired = mergeDeep(defaults, rawSave ?? {});
 
   return {
@@ -29,8 +26,8 @@ export function migrateSave(rawSave) {
   };
 }
 
-export function repairSave(rawSave) {
-  return migrateSave(rawSave);
+export function repairSave(rawSave, defaults) {
+  return migrateSave(rawSave, defaults);
 }
 
 export function isSaveUsable(saveData) {
