@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { calculateDamage } from '../src/engine/battle.js';
 
 const requiredJsonFiles = [
   'data/expressions/expression_matrix_mvp.json',
@@ -84,6 +85,11 @@ for (const unit of allUnits) {
     assert(abilityIds.has(abilityId), `${unit.id} references missing ability: ${abilityId}`);
   }
 }
+
+const sampleAttacker = { classes: ['fruit'], stats: { power: 5, terps: 5 } };
+const sampleDefender = { classes: ['skunk'], stats: { roots: 5 } };
+const zeroDamage = calculateDamage({ attacker: sampleAttacker, defender: sampleDefender, ability: { power: 0, category: 'guard' } });
+assert(zeroDamage === 0, 'Zero-power actions should not deal damage.');
 
 const html = await readFile('public/games/phenoquest/index.html', 'utf8');
 assert(html.includes('game.js'), 'Game page does not reference game.js.');
