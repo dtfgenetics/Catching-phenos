@@ -2,6 +2,8 @@ import { createCombatant, resolveAbility } from '../src/engine/battle.js';
 import { chooseEnemyAction } from '../src/engine/combat-ai.js';
 import { applyDialogueEffects, createDialogueSession, getCurrentDialogueLine, selectDialogueChoice } from '../src/engine/dialogue-runner.js';
 import { resolveInteraction } from '../src/engine/interactions.js';
+import { createLineageResult } from '../src/engine/lineage-result-factory.js';
+import { addLineageTimer, createLineageTimer, findLineageTimer, refreshLineageTimers } from '../src/engine/lineage-timers.js';
 import { hasStatus, tickStatuses } from '../src/engine/status-effects.js';
 import { createDefaultSave } from '../src/engine/save.js';
 import { readFile } from 'node:fs/promises';
@@ -18,6 +20,8 @@ const defaultSave = createDefaultSave();
 const dialogueRecords = await readJson('data/dialogue/mvp_dialogue.json');
 const seedlingTown = await readJson('data/maps/seedling_town.json');
 const abilities = await readJson('data/moves/mvp_abilities.json');
+const pairingRules = await readJson('data/breeding/pairing_rules_mvp.json');
+const resultUnits = await readJson('data/breeding/result_units_mvp.json');
 
 const introSession = createDialogueSession(dialogueRecords, 'calyx_intro', defaultSave);
 assert(introSession.active, 'calyx_intro should start.');
@@ -43,6 +47,24 @@ const interaction = resolveInteraction({
 });
 assert(interaction.type === 'npc', 'Facing Professor Calyx should resolve an NPC interaction.');
 assert(interaction.dialogueId === 'calyx_intro', 'Professor Calyx should open calyx_intro dialogue.');
+
+const lineageRule = pairingRules.find((rule) => rule.id === 'mango_puff_x_terp_toad');
+const lineageTimer = createLineageTimer({
+  id: 'test_lineage_timer',
+  pairingRuleId: lineageRule.id,
+  parentA: lineageRule.parentA,
+  parentB: lineageRule.parentB,
+  durationSeconds: 1,
+  weatherAtStart: 'sweet_wind',
+  cueAtStart: 'aroma_drift'
+});
+const withLineageTimer = addLineageTimer(defaultSave, lineageTimer);
+assert(findLineageTimer(withLineageTimer, 'test_lineage_timer')?.type === 'lineage', 'Lineage timer should be stored in save.');
+const refreshedLineageSave = refreshLineageTimers(withLineageTimer, lineageTimer.startTimestamp + 2000);
+assert(findLineageTimer(refreshedLineageSave, 'test_lineage_timer')?.status === 'ready', 'Lineage timer should become ready.');
+const lineageResult = createLineageResult({ pairingRule: lineageRule, resultUnits, timer: lineageTimer, random: () => 0 });
+assert(lineageResult.source === 'lineage_lab', 'Lineage result should record lineage_lab source.');
+assert(lineageResult.parents.includes('mango_puff'), 'Lineage result should preserve parent IDs.');
 
 const sampleUnit = {
   id: 'sample_unit',
