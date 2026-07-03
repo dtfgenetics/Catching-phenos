@@ -1,25 +1,26 @@
-import { readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 
 const entryFiles = [
   'public/games/phenoquest/game.js',
   'src/engine/battle.js',
   'src/engine/breeding.js',
   'src/engine/weather.js',
-  'src/ui/weather-ui.js'
+  'src/ui/weather-ui.js',
+  'scripts/smoke-check.mjs'
 ];
 
 for (const file of entryFiles) {
-  const source = await readFile(file, 'utf8');
-  const encoded = encodeURIComponent(source);
-  const moduleUrl = `data:text/javascript;charset=utf-8,${encoded}`;
+  const result = spawnSync(process.execPath, ['--check', file], {
+    encoding: 'utf8'
+  });
 
-  try {
-    await import(moduleUrl);
-    console.log(`OK COMPILE: ${file}`);
-  } catch (error) {
-    console.error(`FAILED COMPILE: ${file}`);
-    throw error;
+  if (result.status !== 0) {
+    console.error(result.stdout);
+    console.error(result.stderr);
+    throw new Error(`Syntax check failed: ${file}`);
   }
+
+  console.log(`OK SYNTAX: ${file}`);
 }
 
 console.log('Static compile check complete.');
