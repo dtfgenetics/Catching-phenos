@@ -8,6 +8,8 @@ import { pickWeightedWeather } from '../src/engine/weather.js';
 
 const requiredJsonFiles = [
   'data/system/file_manifest.json',
+  'data/system/asset_manifest.json',
+  'data/system/mechanic_registry.json',
   'data/expressions/expression_matrix_mvp.json',
   'data/phenos/mvp_units.json',
   'data/phenos/mvp_units_extra.json',
@@ -39,6 +41,7 @@ const requiredModules = [
   'src/engine/game-state.js',
   'src/engine/genotype.js',
   'src/engine/inventory.js',
+  'src/engine/lineage-lab.js',
   'src/engine/maps.js',
   'src/engine/movement.js',
   'src/engine/progression.js',
@@ -48,6 +51,7 @@ const requiredModules = [
   'src/engine/result-factory.js',
   'src/engine/result-timers.js',
   'src/engine/save.js',
+  'src/engine/save-migration.js',
   'src/engine/starter-selection.js',
   'src/engine/timers.js',
   'src/engine/weather.js',
@@ -55,8 +59,12 @@ const requiredModules = [
   'src/ui/collection-ui.js',
   'src/ui/combat-ui.js',
   'src/ui/encounter-ui.js',
+  'src/ui/inventory-ui.js',
+  'src/ui/lineage-lab-ui.js',
   'src/ui/map-ui.js',
   'src/ui/movement-ui.js',
+  'src/ui/phenolog-ui.js',
+  'src/ui/quest-ui.js',
   'src/ui/recipe-ui.js',
   'src/ui/render-summary.js',
   'src/ui/starter-selection-ui.js',
@@ -185,14 +193,18 @@ assert(zeroDamage === 0, 'Zero-power actions should not deal damage.');
 const html = await readFile('public/games/phenoquest/index.html', 'utf8');
 assert(html.includes('game.js'), 'Game page does not reference game.js.');
 assert(html.includes('reset-save-button'), 'Game page missing reset save button.');
+assert(html.includes('quest-panel'), 'Game page missing quest panel container.');
 assert(html.includes('weather-panel'), 'Game page missing weather panel container.');
 assert(html.includes('starter-selection'), 'Game page missing starter selection container.');
 assert(html.includes('map-preview'), 'Game page missing map preview container.');
 assert(html.includes('encounter-controls'), 'Game page missing encounter controls container.');
 assert(html.includes('combat-panel'), 'Game page missing combat panel container.');
 assert(html.includes('recipe-panel'), 'Game page missing recipe panel container.');
+assert(html.includes('inventory-panel'), 'Game page missing inventory panel container.');
 assert(html.includes('vault-garden-panel'), 'Game page missing Vault Garden panel container.');
 assert(html.includes('breeding-panel'), 'Game page missing breeding panel container.');
+assert(html.includes('lineage-lab-panel'), 'Game page missing Lineage Lab panel container.');
 assert(html.includes('collection-panel'), 'Game page missing collection panel container.');
+assert(html.includes('phenolog-panel'), 'Game page missing PhenoLog panel container.');
 
 console.log('Smoke check complete.');
