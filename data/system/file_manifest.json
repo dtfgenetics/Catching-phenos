@@ -76,6 +76,7 @@
     "src/ui/weather-ui.js",
     "scripts/smoke-check.mjs",
     "scripts/compile-check.mjs",
+    "scripts/core-rules-check.mjs",
     "scripts/data-contract-check.mjs",
     "scripts/dev-server.mjs",
     "scripts/repo-audit.mjs",
@@ -97,6 +98,7 @@
   "approvedCommands": [
     "npm run audit",
     "npm run contracts",
+    "npm run rules",
     "npm run smoke",
     "npm run compile",
     "npm run check",
