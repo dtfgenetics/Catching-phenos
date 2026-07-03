@@ -18,6 +18,7 @@ import { createCombatant, isDefeated, resolveAbility } from '../../../src/engine
 import { calculateMaterialReward } from '../../../src/engine/battle-rewards.js';
 import { addBattleProgress, addMaterials, addRootedResult, spendMaterials } from '../../../src/engine/collection.js';
 import { addMaterial, removeMaterial } from '../../../src/engine/inventory.js';
+import { applyQuestEvent } from '../../../src/engine/quest-events.js';
 import { createTimer } from '../../../src/engine/timers.js';
 import { addResultTimer, findResultTimer, refreshResultTimers, removeResultTimer } from '../../../src/engine/result-timers.js';
 import { createTimerResult } from '../../../src/engine/result-factory.js';
@@ -173,7 +174,7 @@ function handleStartRecipe(species, expression = null) {
   writeSave(nextSave);
   renderRecipeForSpecies(species, expression);
   renderCollectionProgress(nextSave);
-  debugOutput.textContent = JSON.stringify({ timerStarted: timer }, null, 2);
+  debugOutput.textContent = JSON.stringify({ timerStarted: timer, activeQuest: nextSave.quests.activeQuest }, null, 2);
 }
 
 function handleClaimRecipe(species) {
@@ -185,15 +186,16 @@ function handleClaimRecipe(species) {
   const resultUnit = createTimerResult({ species, expression, sourceTags: timer.inputTags });
   const withoutTimer = removeResultTimer(saveData, timer.id);
   const withStoredUnit = addStoredUnit(withoutTimer, resultUnit);
-  const nextSave = {
+  const withCollection = {
     ...withStoredUnit,
     collection: addRootedResult(withStoredUnit.collection, species.id, resultUnit.trait, resultUnit.expression, resultUnit.isKeeper)
   };
+  const nextSave = applyQuestEvent(withCollection, 'first_result_claimed');
 
   writeSave(nextSave);
   renderRecipeMessage({ container: recipePanel, message: `${resultUnit.displayName} result claimed and saved to the Vault Garden.` });
   renderCollectionProgress(nextSave);
-  debugOutput.textContent = JSON.stringify({ resultUnit, collection: nextSave.collection[species.id] }, null, 2);
+  debugOutput.textContent = JSON.stringify({ resultUnit, activeQuest: nextSave.quests.activeQuest, collection: nextSave.collection[species.id] }, null, 2);
 }
 
 function handleMove(direction) {
@@ -269,12 +271,13 @@ function awardVictory(activeCombatState) {
   const collectionAfterBattle = addBattleProgress(saveData.collection, activeCombatState.species);
   const collectionAfterReward = addMaterials(collectionAfterBattle, activeCombatState.species, reward.materialCount, activeCombatState.expression?.id ?? null);
   const inventoryAfterReward = addMaterial(saveData.inventory, activeCombatState.species.id, reward.materialCount, reward.tags);
-
-  const nextSave = {
+  const withReward = {
     ...saveData,
     collection: collectionAfterReward,
     inventory: inventoryAfterReward
   };
+  const withFirstBattle = applyQuestEvent(withReward, 'first_battle_won');
+  const nextSave = applyQuestEvent(withFirstBattle, 'first_material_earned');
 
   writeSave(nextSave);
   return { reward, nextSave };
@@ -297,7 +300,7 @@ function handleCombatAction(actionId) {
     renderCombatResult({ container: combatPanel, message: `${defeatedState.opponent.displayName} was defeated. Earned ${reward.materialCount} field material.` });
     renderRecipeForSpecies(defeatedState.species, defeatedState.expression);
     renderCollectionProgress(nextSave);
-    debugOutput.textContent = JSON.stringify({ reward, collection: nextSave.collection[defeatedState.species.id] }, null, 2);
+    debugOutput.textContent = JSON.stringify({ reward, activeQuest: nextSave.quests.activeQuest, collection: nextSave.collection[defeatedState.species.id] }, null, 2);
     activeCombat = null;
     return;
   }
@@ -370,14 +373,15 @@ startButton?.addEventListener('click', async () => {
       starters,
       onChoose: (starterId) => {
         const starterUnit = chooseStarter(allUnits, starterId);
-        const nextSave = setStarterChoice(loadSave(), starterId, starterUnit);
+        const withStarter = setStarterChoice(loadSave(), starterId, starterUnit);
+        const nextSave = applyQuestEvent(withStarter, 'starter_chosen');
         writeSave(nextSave);
 
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderCurrentMap(data, nextSave);
         renderCollectionProgress(nextSave);
         panelCopy.textContent = 'Starter saved locally. Win combat to earn material, start a timer, and claim the result.';
-        debugOutput.textContent = JSON.stringify(nextSave.player, null, 2);
+        debugOutput.textContent = JSON.stringify({ player: nextSave.player, activeQuest: nextSave.quests.activeQuest }, null, 2);
       }
     });
   } catch (error) {
