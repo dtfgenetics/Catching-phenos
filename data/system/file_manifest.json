@@ -43,6 +43,8 @@
     "src/engine/interactions.js",
     "src/engine/inventory.js",
     "src/engine/lineage-lab.js",
+    "src/engine/lineage-result-factory.js",
+    "src/engine/lineage-timers.js",
     "src/engine/maps.js",
     "src/engine/movement.js",
     "src/engine/progression.js",
