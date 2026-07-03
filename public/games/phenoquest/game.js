@@ -33,6 +33,7 @@ import { calculateMaterialReward } from '../../../src/engine/battle-rewards.js';
 import { addBattleProgress, addMaterials, addRootedResult, spendMaterials } from '../../../src/engine/collection.js';
 import { addMaterial, removeMaterial } from '../../../src/engine/inventory.js';
 import { applyQuestEvent } from '../../../src/engine/quest-events.js';
+import { tickStatuses } from '../../../src/engine/status-effects.js';
 import { createTimer } from '../../../src/engine/timers.js';
 import { addResultTimer, findResultTimer, refreshResultTimers, removeResultTimer } from '../../../src/engine/result-timers.js';
 import { createTimerResult } from '../../../src/engine/result-factory.js';
@@ -270,6 +271,15 @@ function renderActiveCombat(log = '') {
     log,
     onAction: handleCombatAction
   });
+}
+
+function tickCombatRoundStatuses() {
+  if (!activeCombat) return;
+  activeCombat = {
+    ...activeCombat,
+    player: tickStatuses(activeCombat.player),
+    opponent: tickStatuses(activeCombat.opponent)
+  };
 }
 
 function clearPlayPanels() {
@@ -547,6 +557,7 @@ function handleCombatAction(actionId) {
   });
 
   if (!opponentAction) {
+    tickCombatRoundStatuses();
     renderActiveCombat(playerTurn.log);
     return;
   }
@@ -562,7 +573,8 @@ function handleCombatAction(actionId) {
     return;
   }
 
-  renderActiveCombat(`${playerTurn.log}\n${opponentTurn.log}`);
+  tickCombatRoundStatuses();
+  renderActiveCombat(`${playerTurn.log}\n${opponentTurn.log}\nStatus durations ticked down.`);
 }
 
 function handleResetSave() {
