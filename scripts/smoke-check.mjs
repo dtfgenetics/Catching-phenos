@@ -1,10 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { calculateDamage } from '../src/engine/battle.js';
 import { previewPairing } from '../src/engine/breeding.js';
+import { estimateMarkerQuality, mergeMarkerBias } from '../src/engine/genotype.js';
 import { applyQuestEvent, getQuestEventIds } from '../src/engine/quest-events.js';
+import { canAccessSystem, isRankAtLeast } from '../src/engine/progression.js';
 import { pickWeightedWeather } from '../src/engine/weather.js';
 
 const requiredJsonFiles = [
+  'data/system/file_manifest.json',
   'data/expressions/expression_matrix_mvp.json',
   'data/phenos/mvp_units.json',
   'data/phenos/mvp_units_extra.json',
@@ -34,9 +37,11 @@ const requiredModules = [
   'src/engine/encounters.js',
   'src/engine/expression.js',
   'src/engine/game-state.js',
+  'src/engine/genotype.js',
   'src/engine/inventory.js',
   'src/engine/maps.js',
   'src/engine/movement.js',
+  'src/engine/progression.js',
   'src/engine/quest-events.js',
   'src/engine/quests.js',
   'src/engine/recipes.js',
@@ -93,6 +98,12 @@ const progressed = applyQuestEvent(progressionSeed, 'first_result_claimed');
 assert(progressed.player.rank === 'field_scout', 'first_result_claimed should advance player to field_scout.');
 assert(progressed.world.unlockedRegions.includes('terp_fields'), 'first_result_claimed should unlock terp_fields.');
 assert(progressed.quests.flags.lineage_preview_unlocked === true, 'first_result_claimed should unlock lineage preview flag.');
+assert(isRankAtLeast(progressed.player.rank, 'seedling_runner'), 'field_scout should be above seedling_runner.');
+assert(canAccessSystem(progressed, 'lineage_preview'), 'progressed save should access lineage preview.');
+
+const markerPreview = mergeMarkerBias({ TERP: 'normal' }, { TERP: 'high', STABILITY: 'normal' }, { COLOR: 'rare' });
+assert(markerPreview.TERP === 'high', 'Genotype helper should choose higher TERP marker.');
+assert(estimateMarkerQuality(markerPreview) === 'stable', 'Expected merged marker preview to estimate stable quality.');
 
 const starters = await readJson('data/phenos/mvp_units.json');
 const extras = await readJson('data/phenos/mvp_units_extra.json');
