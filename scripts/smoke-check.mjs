@@ -5,6 +5,10 @@ import { estimateMarkerQuality, mergeMarkerBias } from '../src/engine/genotype.j
 import { applyQuestEvent, getQuestEventIds } from '../src/engine/quest-events.js';
 import { canAccessSystem, isRankAtLeast } from '../src/engine/progression.js';
 import { pickWeightedWeather } from '../src/engine/weather.js';
+import { createScreenState, isKnownScreen, pushScreen, SCREEN_IDS } from '../src/game/screens.js';
+import { createGameController } from '../src/game/controller.js';
+import { createDefaultSave } from '../src/engine/save.js';
+import { exportSave, importSave } from '../src/engine/save-export.js';
 
 const requiredJsonFiles = [
   'data/system/file_manifest.json',
@@ -30,6 +34,10 @@ const requiredJsonFiles = [
 ];
 
 const requiredModules = [
+  'src/game/config.js',
+  'src/game/controller.js',
+  'src/game/load-data.js',
+  'src/game/screens.js',
   'src/engine/battle.js',
   'src/engine/battle-rewards.js',
   'src/engine/breeding.js',
@@ -51,8 +59,10 @@ const requiredModules = [
   'src/engine/result-factory.js',
   'src/engine/result-timers.js',
   'src/engine/save.js',
+  'src/engine/save-export.js',
   'src/engine/save-migration.js',
   'src/engine/starter-selection.js',
+  'src/engine/storage.js',
   'src/engine/timers.js',
   'src/engine/weather.js',
   'src/ui/breeding-ui.js',
@@ -92,6 +102,18 @@ for (const path of requiredModules) {
   await import(`../${path}`);
   console.log(`OK MODULE: ${path}`);
 }
+
+const screenState = createScreenState();
+const nextScreenState = pushScreen(screenState, SCREEN_IDS.map);
+assert(isKnownScreen(SCREEN_IDS.map), 'Screen registry missing map screen.');
+assert(nextScreenState.current === SCREEN_IDS.map, 'Screen push should move to map screen.');
+
+const defaultSave = createDefaultSave();
+const controller = createGameController({ data: {}, saveData: defaultSave });
+assert(controller.saveData.version === defaultSave.version, 'Controller should hold save data.');
+const exportedSave = exportSave(defaultSave);
+const importedSave = importSave(exportedSave, defaultSave);
+assert(importedSave.version === defaultSave.version, 'Imported save should migrate to current version.');
 
 const questEventIds = getQuestEventIds();
 assert(questEventIds.includes('starter_chosen'), 'Quest events missing starter_chosen.');
