@@ -4,6 +4,7 @@ import { renderChosenStarter, renderStarterSelection } from '../../../src/ui/sta
 import { renderMapGrid, renderMapLabel } from '../../../src/ui/map-ui.js';
 import { renderMovementControls } from '../../../src/ui/movement-ui.js';
 import { renderEncounterControls, renderEncounterResult } from '../../../src/ui/encounter-ui.js';
+import { renderCombatPanel, renderCombatResult } from '../../../src/ui/combat-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
 import { setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, writeSave } from '../../../src/engine/save.js';
@@ -11,6 +12,7 @@ import { getMap } from '../../../src/engine/maps.js';
 import { applyTransition, movePlayer } from '../../../src/engine/movement.js';
 import { rollEncounter, rollLevel } from '../../../src/engine/encounters.js';
 import { findExpression } from '../../../src/engine/expression.js';
+import { createCombatant, isDefeated, resolveAbility } from '../../../src/engine/battle.js';
 
 const startButton = document.querySelector('#start-button');
 const panel = document.querySelector('#game-panel');
@@ -22,9 +24,11 @@ const mapPreview = document.querySelector('#map-preview');
 const movementControls = document.querySelector('#movement-controls');
 const encounterControls = document.querySelector('#encounter-controls');
 const encounterResult = document.querySelector('#encounter-result');
+const combatPanel = document.querySelector('#combat-panel');
 const debugOutput = document.querySelector('#debug-output');
 
 let activeData = null;
+let activeCombat = null;
 
 const DATA_PATHS = {
   expressions: '../../../data/expressions/expression_matrix_mvp.json',
@@ -61,10 +65,30 @@ function getSpecies(data, speciesId) {
   return getAllUnits(data).find((unit) => unit.id === speciesId) ?? null;
 }
 
+function getAbility(data, abilityId) {
+  return data.abilities.find((ability) => ability.id === abilityId) ?? null;
+}
+
+function getUnitActions(data, species) {
+  return (species.abilities ?? []).map((abilityId) => getAbility(data, abilityId)).filter(Boolean);
+}
+
 function renderCurrentMap(data, saveData) {
   const currentMap = getMap(data.maps, saveData.player.currentMap);
   renderMapLabel({ container: mapLabel, map: currentMap, player: saveData.player });
   renderMapGrid({ container: mapPreview, map: currentMap, player: saveData.player });
+}
+
+function renderActiveCombat(log = '') {
+  if (!activeCombat) return;
+  renderCombatPanel({
+    container: combatPanel,
+    player: activeCombat.player,
+    opponent: activeCombat.opponent,
+    actions: activeCombat.actions,
+    log,
+    onAction: handleCombatAction
+  });
 }
 
 function handleMove(direction) {
@@ -104,13 +128,18 @@ function handleEncounterRoll() {
   const level = encounter ? rollLevel(encounter) : null;
   const expression = findExpression(activeData.expressions, state.weather, state.cue);
 
-  renderEncounterResult({
-    container: encounterResult,
-    encounter,
-    species,
-    level,
-    expression
-  });
+  renderEncounterResult({ container: encounterResult, encounter, species, level, expression });
+
+  if (species && saveData.team[0]) {
+    const playerSpecies = getSpecies(activeData, saveData.team[0].speciesId);
+    activeCombat = {
+      player: createCombatant(playerSpecies, saveData.team[0].level ?? 1),
+      opponent: createCombatant(species, level),
+      actions: getUnitActions(activeData, playerSpecies),
+      opponentActions: getUnitActions(activeData, species)
+    };
+    renderActiveCombat('Combat test started. Choose an action.');
+  }
 
   debugOutput.textContent = JSON.stringify({
     encounter: encounter?.speciesId ?? null,
@@ -121,19 +150,49 @@ function handleEncounterRoll() {
   }, null, 2);
 }
 
+function handleCombatAction(actionId) {
+  if (!activeCombat || !activeData) return;
+
+  const action = getAbility(activeData, actionId);
+  if (!action) return;
+
+  const playerTurn = resolveAbility({
+    attacker: activeCombat.player,
+    defender: activeCombat.opponent,
+    ability: action
+  });
+
+  activeCombat.player = playerTurn.attacker;
+  activeCombat.opponent = playerTurn.defender;
+
+  if (isDefeated(activeCombat.opponent)) {
+    renderCombatResult({ container: combatPanel, message: `${activeCombat.opponent.displayName} was defeated. Reward flow is next.` });
+    activeCombat = null;
+    return;
+  }
+
+  const opponentAction = activeCombat.opponentActions[0];
+  const opponentTurn = resolveAbility({
+    attacker: activeCombat.opponent,
+    defender: activeCombat.player,
+    ability: opponentAction
+  });
+
+  activeCombat.opponent = opponentTurn.attacker;
+  activeCombat.player = opponentTurn.defender;
+
+  if (isDefeated(activeCombat.player)) {
+    renderCombatResult({ container: combatPanel, message: `${activeCombat.player.displayName} cannot continue. Reset or try another encounter.` });
+    activeCombat = null;
+    return;
+  }
+
+  renderActiveCombat(`${playerTurn.log}\n${opponentTurn.log}`);
+}
+
 function bindKeyboardMovement() {
   window.addEventListener('keydown', (event) => {
-    const keyMap = {
-      ArrowUp: 'up',
-      ArrowDown: 'down',
-      ArrowLeft: 'left',
-      ArrowRight: 'right',
-      w: 'up',
-      s: 'down',
-      a: 'left',
-      d: 'right'
-    };
-
+    const keyMap = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' };
     const direction = keyMap[event.key];
     if (!direction) return;
     event.preventDefault();
@@ -144,14 +203,7 @@ function bindKeyboardMovement() {
 bindKeyboardMovement();
 
 startButton?.addEventListener('click', async () => {
-  showPanel({
-    panel,
-    titleEl: panelTitle,
-    copyEl: panelCopy,
-    debugEl: debugOutput,
-    title: 'Seedling Town Demo',
-    copy: 'Loading MVP data...'
-  });
+  showPanel({ panel, titleEl: panelTitle, copyEl: panelCopy, debugEl: debugOutput, title: 'Seedling Town Demo', copy: 'Loading MVP data...' });
 
   try {
     const data = await loadGameData();
@@ -182,19 +234,11 @@ startButton?.addEventListener('click', async () => {
 
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderCurrentMap(data, nextSave);
-        panelCopy.textContent = 'Starter saved locally. Use the movement buttons or arrow keys to move, then test a field encounter.';
+        panelCopy.textContent = 'Starter saved locally. Use movement, then test a field encounter and combat prototype.';
         debugOutput.textContent = JSON.stringify(nextSave.player, null, 2);
       }
     });
   } catch (error) {
-    showPanel({
-      panel,
-      titleEl: panelTitle,
-      copyEl: panelCopy,
-      debugEl: debugOutput,
-      title: 'Data Load Error',
-      copy: 'Data load failed. Check paths and JSON files.',
-      debug: String(error)
-    });
+    showPanel({ panel, titleEl: panelTitle, copyEl: panelCopy, debugEl: debugOutput, title: 'Data Load Error', copy: 'Data load failed. Check paths and JSON files.', debug: String(error) });
   }
 });
