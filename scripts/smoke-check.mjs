@@ -33,6 +33,7 @@ const requiredModules = [
   'src/engine/save.js',
   'src/engine/starter-selection.js',
   'src/engine/timers.js',
+  'src/ui/combat-ui.js',
   'src/ui/encounter-ui.js',
   'src/ui/map-ui.js',
   'src/ui/movement-ui.js',
@@ -89,5 +90,6 @@ assert(html.includes('game.js'), 'Game page does not reference game.js.');
 assert(html.includes('starter-selection'), 'Game page missing starter selection container.');
 assert(html.includes('map-preview'), 'Game page missing map preview container.');
 assert(html.includes('encounter-controls'), 'Game page missing encounter controls container.');
+assert(html.includes('combat-panel'), 'Game page missing combat panel container.');
 
 console.log('Smoke check complete.');
