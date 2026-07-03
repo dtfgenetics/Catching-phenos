@@ -1,3 +1,9 @@
+function formatStatuses(combatant) {
+  const statuses = combatant.statuses ?? [];
+  if (!statuses.length) return 'none';
+  return statuses.map((status) => `${status.id} (${status.duration})`).join(', ');
+}
+
 export function renderCombatPanel({ container, player, opponent, log = '', actions = [], onAction }) {
   if (!container) return;
 
@@ -19,11 +25,13 @@ export function renderCombatPanel({ container, player, opponent, log = '', actio
           <strong>${player.displayName}</strong>
           <span>Vigor: ${player.vigor}/${player.maxVigor}</span>
           <span>Stability: ${player.stability}</span>
+          <span>Status: ${formatStatuses(player)}</span>
         </div>
         <div class="combat-card">
           <strong>${opponent.displayName}</strong>
           <span>Vigor: ${opponent.vigor}/${opponent.maxVigor}</span>
           <span>Stability: ${opponent.stability}</span>
+          <span>Status: ${formatStatuses(opponent)}</span>
         </div>
       </div>
       <div class="action-row">${actionButtons}</div>
