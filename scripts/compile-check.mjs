@@ -8,6 +8,7 @@ const entryFiles = [
   'src/ui/breeding-ui.js',
   'src/ui/weather-ui.js',
   'scripts/dev-server.mjs',
+  'scripts/repo-audit.mjs',
   'scripts/smoke-check.mjs'
 ];
 
