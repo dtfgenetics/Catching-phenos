@@ -2,10 +2,12 @@ import { fetchJson } from '../../../src/data/fetch-json.js';
 import { summarizeMvpData, showPanel } from '../../../src/ui/render-summary.js';
 import { renderChosenStarter, renderStarterSelection } from '../../../src/ui/starter-selection-ui.js';
 import { renderMapGrid, renderMapLabel } from '../../../src/ui/map-ui.js';
+import { renderMovementControls } from '../../../src/ui/movement-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
 import { setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, writeSave } from '../../../src/engine/save.js';
 import { getMap } from '../../../src/engine/maps.js';
+import { applyTransition, movePlayer } from '../../../src/engine/movement.js';
 
 const startButton = document.querySelector('#start-button');
 const panel = document.querySelector('#game-panel');
@@ -14,7 +16,10 @@ const panelCopy = document.querySelector('#panel-copy');
 const starterSelection = document.querySelector('#starter-selection');
 const mapLabel = document.querySelector('#map-label');
 const mapPreview = document.querySelector('#map-preview');
+const movementControls = document.querySelector('#movement-controls');
 const debugOutput = document.querySelector('#debug-output');
+
+let activeData = null;
 
 const DATA_PATHS = {
   expressions: '../../../data/expressions/expression_matrix_mvp.json',
@@ -53,6 +58,51 @@ function renderCurrentMap(data, saveData) {
   renderMapGrid({ container: mapPreview, map: currentMap, player: saveData.player });
 }
 
+function handleMove(direction) {
+  if (!activeData) return;
+
+  const saveData = loadSave();
+  const currentMap = getMap(activeData.maps, saveData.player.currentMap);
+  const moveResult = movePlayer(saveData, currentMap, direction);
+  let nextSave = moveResult.saveData;
+
+  if (moveResult.transition) {
+    nextSave = applyTransition(nextSave, moveResult.transition);
+  }
+
+  writeSave(nextSave);
+  renderCurrentMap(activeData, nextSave);
+  debugOutput.textContent = JSON.stringify({
+    map: nextSave.player.currentMap,
+    position: nextSave.player.position,
+    cue: nextSave.world.cue,
+    moved: moveResult.moved,
+    transition: moveResult.transition?.id ?? null
+  }, null, 2);
+}
+
+function bindKeyboardMovement() {
+  window.addEventListener('keydown', (event) => {
+    const keyMap = {
+      ArrowUp: 'up',
+      ArrowDown: 'down',
+      ArrowLeft: 'left',
+      ArrowRight: 'right',
+      w: 'up',
+      s: 'down',
+      a: 'left',
+      d: 'right'
+    };
+
+    const direction = keyMap[event.key];
+    if (!direction) return;
+    event.preventDefault();
+    handleMove(direction);
+  });
+}
+
+bindKeyboardMovement();
+
 startButton?.addEventListener('click', async () => {
   showPanel({
     panel,
@@ -65,6 +115,7 @@ startButton?.addEventListener('click', async () => {
 
   try {
     const data = await loadGameData();
+    activeData = data;
     const allUnits = getAllUnits(data);
     const starters = getStarterOptions(allUnits);
 
@@ -78,6 +129,8 @@ startButton?.addEventListener('click', async () => {
       debug: summarizeMvpData(data)
     });
 
+    renderMovementControls({ container: movementControls, onMove: handleMove });
+
     renderStarterSelection({
       container: starterSelection,
       starters,
@@ -88,7 +141,7 @@ startButton?.addEventListener('click', async () => {
 
         renderChosenStarter({ container: starterSelection, starterUnit });
         renderCurrentMap(data, nextSave);
-        panelCopy.textContent = 'Starter saved locally. Seedling Town placeholder map loaded.';
+        panelCopy.textContent = 'Starter saved locally. Use the movement buttons or arrow keys to move on the placeholder map.';
         debugOutput.textContent = JSON.stringify(nextSave.player, null, 2);
       }
     });
