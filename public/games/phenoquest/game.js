@@ -8,6 +8,7 @@ import { renderCombatPanel, renderCombatResult } from '../../../src/ui/combat-ui
 import { renderRecipeMessage, renderRecipePanel } from '../../../src/ui/recipe-ui.js';
 import { renderCollectionPanel } from '../../../src/ui/collection-ui.js';
 import { renderVaultGardenPanel } from '../../../src/ui/vault-garden-ui.js';
+import { renderWeatherPanel } from '../../../src/ui/weather-ui.js';
 import { chooseStarter, getStarterOptions } from '../../../src/engine/starter-selection.js';
 import { addStoredUnit, setStarterChoice } from '../../../src/engine/game-state.js';
 import { loadSave, resetSave, writeSave } from '../../../src/engine/save.js';
@@ -29,6 +30,7 @@ const resetButton = document.querySelector('#reset-save-button');
 const panel = document.querySelector('#game-panel');
 const panelTitle = document.querySelector('#panel-title');
 const panelCopy = document.querySelector('#panel-copy');
+const weatherPanel = document.querySelector('#weather-panel');
 const starterSelection = document.querySelector('#starter-selection');
 const mapLabel = document.querySelector('#map-label');
 const mapPreview = document.querySelector('#map-preview');
@@ -55,7 +57,8 @@ const DATA_PATHS = {
   abilities: '../../../data/moves/mvp_abilities.json',
   quests: '../../../data/quests/mvp_quests.json',
   dialogue: '../../../data/dialogue/mvp_dialogue.json',
-  starterSlots: '../../../data/starter_slots.json'
+  starterSlots: '../../../data/starter_slots.json',
+  weatherStates: '../../../data/weather/weather_states.json'
 };
 
 const MAP_PATHS = [
@@ -97,6 +100,16 @@ function renderCurrentMap(data, saveData) {
   const currentMap = getMap(data.maps, saveData.player.currentMap);
   renderMapLabel({ container: mapLabel, map: currentMap, player: saveData.player });
   renderMapGrid({ container: mapPreview, map: currentMap, player: saveData.player });
+}
+
+function renderWeatherControls(saveData = loadSave()) {
+  if (!activeData) return;
+  renderWeatherPanel({
+    container: weatherPanel,
+    weatherStates: activeData.weatherStates ?? [],
+    currentWeatherId: saveData.world.weather,
+    onSelect: handleWeatherSelect
+  });
 }
 
 function renderCollectionProgress(saveData = loadSave()) {
@@ -160,6 +173,22 @@ function renderRecipeForSpecies(species, expression = null) {
   });
   renderCollectionProgress(refreshedSave);
   renderVaultGarden(refreshedSave);
+}
+
+function handleWeatherSelect(weatherId) {
+  const saveData = loadSave();
+  const nextSave = {
+    ...saveData,
+    world: {
+      ...saveData.world,
+      weather: weatherId
+    }
+  };
+
+  writeSave(nextSave);
+  renderWeatherControls(nextSave);
+  panelCopy.textContent = 'Weather updated. Encounter rolls and timer result expressions now use the selected weather.';
+  debugOutput.textContent = JSON.stringify({ weather: nextSave.world.weather, cue: nextSave.world.cue }, null, 2);
 }
 
 function handleStartRecipe(species, expression = null) {
@@ -228,6 +257,7 @@ function handleMove(direction) {
   debugOutput.textContent = JSON.stringify({
     map: nextSave.player.currentMap,
     position: nextSave.player.position,
+    weather: nextSave.world.weather,
     cue: nextSave.world.cue,
     moved: moveResult.moved,
     transition: moveResult.transition?.id ?? null
@@ -338,6 +368,7 @@ function handleResetSave() {
   const freshSave = resetSave();
   clearPlayPanels();
   if (activeData) {
+    renderWeatherControls(freshSave);
     renderCurrentMap(activeData, freshSave);
     renderCollectionProgress(freshSave);
     renderVaultGarden(freshSave);
@@ -368,6 +399,7 @@ startButton?.addEventListener('click', async () => {
     activeData = data;
     const allUnits = getAllUnits(data);
     const starters = getStarterOptions(allUnits);
+    const currentSave = loadSave();
 
     showPanel({
       panel,
@@ -375,14 +407,15 @@ startButton?.addEventListener('click', async () => {
       copyEl: panelCopy,
       debugEl: debugOutput,
       title: 'Choose Your First Partner',
-      copy: 'Pick one starter to begin the Seedling Town Demo.',
+      copy: 'Pick one starter to begin the Seedling Town Demo. Weather can be changed for testing encounters and expressions.',
       debug: summarizeMvpData(data)
     });
 
+    renderWeatherControls(currentSave);
     renderMovementControls({ container: movementControls, onMove: handleMove });
     renderEncounterControls({ container: encounterControls, onRoll: handleEncounterRoll });
-    renderCollectionProgress(loadSave());
-    renderVaultGarden(loadSave());
+    renderCollectionProgress(currentSave);
+    renderVaultGarden(currentSave);
 
     renderStarterSelection({
       container: starterSelection,
@@ -394,11 +427,12 @@ startButton?.addEventListener('click', async () => {
         writeSave(nextSave);
 
         renderChosenStarter({ container: starterSelection, starterUnit });
+        renderWeatherControls(nextSave);
         renderCurrentMap(data, nextSave);
         renderCollectionProgress(nextSave);
         renderVaultGarden(nextSave);
-        panelCopy.textContent = 'Starter saved locally. Win combat to earn material, start a timer, and claim the result.';
-        debugOutput.textContent = JSON.stringify({ player: nextSave.player, activeQuest: nextSave.quests.activeQuest }, null, 2);
+        panelCopy.textContent = 'Starter saved locally. Change weather, roll encounters, win combat, start a timer, and claim the result.';
+        debugOutput.textContent = JSON.stringify({ player: nextSave.player, weather: nextSave.world.weather, activeQuest: nextSave.quests.activeQuest }, null, 2);
       }
     });
   } catch (error) {
