@@ -28,6 +28,7 @@ const entryFiles = [
   'src/ui/phenolog-ui.js',
   'src/ui/quest-ui.js',
   'src/ui/weather-ui.js',
+  'scripts/core-rules-check.mjs',
   'scripts/data-contract-check.mjs',
   'scripts/dev-server.mjs',
   'scripts/repo-audit.mjs',
