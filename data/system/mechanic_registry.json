@@ -21,6 +21,15 @@
       "browserFiles": ["public/games/phenoquest/game.js"]
     },
     {
+      "id": "map_interaction",
+      "status": "engine_ready",
+      "goal": "Resolve NPC and object interactions from player position and facing direction.",
+      "dataFiles": ["data/maps/seedling_town.json", "data/dialogue/mvp_dialogue.json"],
+      "engineFiles": ["src/engine/interactions.js", "src/engine/dialogue-runner.js"],
+      "uiFiles": ["src/ui/interaction-ui.js", "src/ui/dialogue-box-ui.js"],
+      "browserFiles": ["public/games/phenoquest/game.js"]
+    },
+    {
       "id": "environment_expression",
       "status": "mvp_data_wired",
       "goal": "Resolve weather plus cue into expression behavior and reward tags.",
@@ -34,7 +43,7 @@
       "status": "wired_mvp",
       "goal": "Roll encounters, resolve simple combat, award field material.",
       "dataFiles": ["data/encounters/terp_fields.json", "data/moves/mvp_abilities.json"],
-      "engineFiles": ["src/engine/encounters.js", "src/engine/battle.js", "src/engine/battle-rewards.js"],
+      "engineFiles": ["src/engine/encounters.js", "src/engine/battle.js", "src/engine/battle-rewards.js", "src/engine/combat-ai.js", "src/engine/status-effects.js"],
       "uiFiles": ["src/ui/encounter-ui.js", "src/ui/combat-ui.js"],
       "browserFiles": ["public/games/phenoquest/game.js"]
     },
@@ -53,7 +62,7 @@
       "goal": "Track seen, battled, material, result count, traits, expressions, and Vault progress.",
       "dataFiles": [],
       "engineFiles": ["src/engine/collection.js"],
-      "uiFiles": ["src/ui/collection-ui.js"],
+      "uiFiles": ["src/ui/collection-ui.js", "src/ui/phenolog-ui.js"],
       "browserFiles": ["public/games/phenoquest/game.js"]
     },
     {
@@ -62,7 +71,7 @@
       "goal": "Preview future pairing routes from team and Vault Garden candidates.",
       "dataFiles": ["data/breeding/genotype_markers.json", "data/breeding/pairing_rules_mvp.json", "data/breeding/result_units_mvp.json"],
       "engineFiles": ["src/engine/breeding.js", "src/engine/genotype.js", "src/engine/progression.js"],
-      "uiFiles": ["src/ui/breeding-ui.js"],
+      "uiFiles": ["src/ui/breeding-ui.js", "src/ui/lineage-lab-ui.js"],
       "browserFiles": ["public/games/phenoquest/game.js"]
     },
     {
@@ -71,7 +80,7 @@
       "goal": "Advance player rank, flags, and region unlocks as systems complete.",
       "dataFiles": ["data/quests/mvp_quests.json"],
       "engineFiles": ["src/engine/quest-events.js", "src/engine/progression.js"],
-      "uiFiles": [],
+      "uiFiles": ["src/ui/quest-ui.js"],
       "browserFiles": ["public/games/phenoquest/game.js"]
     }
   ]
