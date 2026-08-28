@@ -3,24 +3,32 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="PhenoQuest: The Living Seed Vault — explore Verdantia, battle for cuttings, root clones, find keeper traits, and restore genetic lineages." />
+    <meta name="description" content="PhenoQuest: The Living Seed Vault — explore Verdantia, battle for cuttings, root clones, find keeper traits, make crosses, and restore genetic lineages." />
     <meta name="theme-color" content="#102418" />
     <title>PhenoQuest: The Living Seed Vault</title>
     <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./experience-v2.css" />
   </head>
   <body>
+    <a class="skip-link" href="#game-panel">Skip to game</a>
     <main id="app" class="game-shell">
       <section class="title-card">
-        <p class="eyebrow">DTF Seeds Game Hub</p>
+        <p class="eyebrow">DTF Seeds Game Hub · Genetics preservation adventure</p>
         <h1>PhenoQuest</h1>
         <h2>The Living Seed Vault</h2>
         <p class="tagline">Collect the Whole Garden.</p>
-        <button id="start-button" type="button">Start Demo</button>
+        <p class="title-intro">Battle for cuttings, root clones, identify Keeper traits, read expression, make strategic crosses, and rebuild living cannabis lineages across Verdantia.</p>
+        <div class="title-trust" aria-label="Game features">
+          <span>Turn-based battles</span><span>Clone rooting</span><span>Genotype + expression</span><span>Lineage crosses</span><span>Local save</span>
+        </div>
+        <button id="start-button" type="button">Begin Vault Run</button>
       </section>
 
       <section id="game-panel" class="panel hidden" aria-live="polite">
-        <h2 id="panel-title">Seedling Town Demo</h2>
+        <h2 id="panel-title">Seedling Town</h2>
         <p id="panel-copy">Loading game data...</p>
+        <div id="first-session-guide"></div>
+        <nav id="journey-nav" class="journey-nav" aria-label="Journey sections"></nav>
         <button id="reset-save-button" type="button">Reset Save</button>
         <div id="quest-panel"></div>
         <div id="weather-panel"></div>
@@ -40,11 +48,12 @@
         <div id="lineage-lab-panel"></div>
         <div id="collection-panel"></div>
         <div id="phenolog-panel"></div>
-        <pre id="debug-output"></pre>
+        <pre id="debug-output" hidden aria-hidden="true"></pre>
       </section>
     </main>
 
     <script src="./game.js" type="module"></script>
     <script src="./lineage-runtime.js" type="module"></script>
+    <script src="./experience-v2.js" type="module"></script>
   </body>
 </html>
