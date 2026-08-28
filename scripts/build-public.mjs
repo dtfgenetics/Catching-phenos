@@ -8,7 +8,7 @@ const dataSource = path.join(repoRoot, 'data');
 const distRoot = path.join(repoRoot, 'dist');
 const gameOut = path.join(distRoot, 'games', 'phenoquest');
 const runtimeOut = path.join(gameOut, '_runtime');
-const browserEntries = ['game.js', 'lineage-runtime.js'];
+const browserEntries = ['game.js', 'lineage-runtime.js', 'experience-v2.js'];
 
 await rm(distRoot, { recursive: true, force: true });
 await mkdir(path.dirname(gameOut), { recursive: true });
