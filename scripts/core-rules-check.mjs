@@ -2,6 +2,7 @@ import { createCombatant, resolveAbility } from '../src/engine/battle.js';
 import { chooseEnemyAction } from '../src/engine/combat-ai.js';
 import { applyDialogueEffects, createDialogueSession, getCurrentDialogueLine, selectDialogueChoice } from '../src/engine/dialogue-runner.js';
 import { resolveInteraction } from '../src/engine/interactions.js';
+import { addItem, addMaterial } from '../src/engine/inventory.js';
 import { createLineageResult } from '../src/engine/lineage-result-factory.js';
 import { addLineageTimer, createLineageTimer, findLineageTimer, refreshLineageTimers } from '../src/engine/lineage-timers.js';
 import { previewPairing } from '../src/engine/breeding.js';
@@ -23,6 +24,23 @@ const seedlingTown = await readJson('data/maps/seedling_town.json');
 const abilities = await readJson('data/moves/mvp_abilities.json');
 const pairingRules = await readJson('data/breeding/pairing_rules_mvp.json');
 const resultUnits = await readJson('data/breeding/result_units_mvp.json');
+
+const inventorySnapshot = {
+  items: [{ itemId: 'root_tonic', quantity: 1 }],
+  materials: [{ speciesId: 'mango_puff', quantity: 2, tags: ['fruit'] }]
+};
+const itemEntryBefore = inventorySnapshot.items[0];
+const materialEntryBefore = inventorySnapshot.materials[0];
+const inventoryWithItem = addItem(inventorySnapshot, 'root_tonic', 2);
+assert(inventorySnapshot.items[0].quantity === 1, 'Adding an item must not mutate the prior inventory snapshot.');
+assert(inventoryWithItem.items[0].quantity === 3, 'Adding an item should update the returned inventory quantity.');
+assert(inventoryWithItem.items[0] !== itemEntryBefore, 'Updated item entries should be copied instead of reused.');
+const inventoryWithMaterial = addMaterial(inventorySnapshot, 'mango_puff', 1, ['resin']);
+assert(inventorySnapshot.materials[0].quantity === 2, 'Adding material must not mutate the prior inventory snapshot.');
+assert(inventorySnapshot.materials[0].tags.length === 1, 'Adding material tags must not mutate the prior tag array.');
+assert(inventoryWithMaterial.materials[0].quantity === 3, 'Adding material should update the returned inventory quantity.');
+assert(inventoryWithMaterial.materials[0].tags.includes('fruit') && inventoryWithMaterial.materials[0].tags.includes('resin'), 'Material tags should merge in the returned inventory.');
+assert(inventoryWithMaterial.materials[0] !== materialEntryBefore, 'Updated material entries should be copied instead of reused.');
 
 const introSession = createDialogueSession(dialogueRecords, 'calyx_intro', defaultSave);
 assert(introSession.active, 'calyx_intro should start.');

@@ -1,14 +1,13 @@
 export function addItem(inventory, itemId, quantity = 1) {
-  const items = [...(inventory.items ?? [])];
+  const items = inventory.items ?? [];
   const existing = items.find((entry) => entry.itemId === itemId);
 
-  if (existing) {
-    existing.quantity += quantity;
-  } else {
-    items.push({ itemId, quantity });
-  }
-
-  return { ...inventory, items };
+  return {
+    ...inventory,
+    items: existing
+      ? items.map((entry) => entry.itemId === itemId ? { ...entry, quantity: entry.quantity + quantity } : entry)
+      : [...items, { itemId, quantity }]
+  };
 }
 
 export function removeItem(inventory, itemId, quantity = 1) {
@@ -24,17 +23,21 @@ export function getItemQuantity(inventory, itemId) {
 }
 
 export function addMaterial(inventory, speciesId, quantity = 1, tags = []) {
-  const materials = [...(inventory.materials ?? [])];
+  const materials = inventory.materials ?? [];
   const existing = materials.find((entry) => entry.speciesId === speciesId);
 
-  if (existing) {
-    existing.quantity += quantity;
-    existing.tags = Array.from(new Set([...(existing.tags ?? []), ...tags]));
-  } else {
-    materials.push({ speciesId, quantity, tags });
-  }
-
-  return { ...inventory, materials };
+  return {
+    ...inventory,
+    materials: existing
+      ? materials.map((entry) => entry.speciesId === speciesId
+        ? {
+            ...entry,
+            quantity: entry.quantity + quantity,
+            tags: Array.from(new Set([...(entry.tags ?? []), ...tags]))
+          }
+        : entry)
+      : [...materials, { speciesId, quantity, tags: [...tags] }]
+  };
 }
 
 export function removeMaterial(inventory, speciesId, quantity = 1) {
