@@ -5,6 +5,7 @@ const repoRoot = process.cwd();
 const gameRoot = path.join(repoRoot, 'dist', 'games', 'phenoquest');
 const entryPath = path.join(gameRoot, 'game.js');
 const lineageEntryPath = path.join(gameRoot, 'lineage-runtime.js');
+const experienceEntryPath = path.join(gameRoot, 'experience-v2.js');
 
 async function exists(filePath) {
   try {
@@ -29,15 +30,19 @@ async function walk(dir) {
 for (const required of [
   'index.html',
   'style.css',
+  'experience-v2.css',
   'game.js',
   'lineage-runtime.js',
+  'experience-v2.js',
   'build-meta.json',
   '_runtime/src/engine/battle.js',
   '_runtime/src/engine/breeding.js',
+  '_runtime/src/engine/first-session.js',
   '_runtime/src/engine/lineage-timers.js',
   '_runtime/src/engine/lineage-result-factory.js',
   '_runtime/src/engine/save.js',
   '_runtime/src/ui/combat-ui.js',
+  '_runtime/src/ui/first-session-ui.js',
   '_runtime/src/ui/lineage-lab-ui.js',
   '_runtime/data/phenos/mvp_units.json',
   '_runtime/data/encounters/terp_fields.json',
@@ -53,18 +58,33 @@ if (await exists(path.join(repoRoot, 'dist', 'src')) || await exists(path.join(r
 }
 
 const indexHtml = await readFile(path.join(gameRoot, 'index.html'), 'utf8');
-if (!indexHtml.includes('./style.css') || !indexHtml.includes('./game.js') || !indexHtml.includes('./lineage-runtime.js')) {
-  throw new Error('Production index must load route-local style.css, game.js, and lineage-runtime.js.');
+for (const marker of ['./style.css', './experience-v2.css', './game.js', './lineage-runtime.js', './experience-v2.js']) {
+  if (!indexHtml.includes(marker)) throw new Error(`Production index is missing route-local asset ${marker}.`);
+}
+if (!indexHtml.includes('first-session-guide') || !indexHtml.includes('journey-nav')) {
+  throw new Error('Production index is missing guided first-session surfaces.');
 }
 
-for (const browserEntryPath of [entryPath, lineageEntryPath]) {
+for (const browserEntryPath of [entryPath, lineageEntryPath, experienceEntryPath]) {
   const source = await readFile(browserEntryPath, 'utf8');
   if (source.includes('../../../src/') || source.includes('../../../data/')) {
     throw new Error(`Production entry ${path.basename(browserEntryPath)} contains repository-relative paths.`);
   }
-  if (!source.includes('./_runtime/src/') || !source.includes('./_runtime/data/')) {
-    throw new Error(`Production entry ${path.basename(browserEntryPath)} is not wired to the route-local runtime.`);
+  if (!source.includes('./_runtime/src/')) {
+    throw new Error(`Production entry ${path.basename(browserEntryPath)} is not wired to the route-local source runtime.`);
   }
+}
+
+for (const dataEntryPath of [entryPath, lineageEntryPath]) {
+  const source = await readFile(dataEntryPath, 'utf8');
+  if (!source.includes('./_runtime/data/')) {
+    throw new Error(`Production entry ${path.basename(dataEntryPath)} is not wired to route-local data.`);
+  }
+}
+
+const experienceEntry = await readFile(experienceEntryPath, 'utf8');
+if (!experienceEntry.includes('first-session.js') || !experienceEntry.includes('first-session-ui.js')) {
+  throw new Error('Guided experience runtime is not wired to canonical first-session modules.');
 }
 
 const entry = await readFile(entryPath, 'utf8');
@@ -99,4 +119,4 @@ if (!lineageEntry.includes('pairing_rules_mvp.json') || !lineageEntry.includes('
   throw new Error('Production lineage runtime is not wired to canonical pairing and result data.');
 }
 
-console.log(`Verified PhenoQuest production package: ${javascriptFiles.length} JavaScript files, ${importCount} relative module imports, ${dataMatches.length} core JSON dependencies, Lineage Lab runtime included.`);
+console.log(`Verified PhenoQuest production package: ${javascriptFiles.length} JavaScript files, ${importCount} relative module imports, ${dataMatches.length} core JSON dependencies, guided first run and Lineage Lab runtime included.`);
