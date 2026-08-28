@@ -10,9 +10,9 @@ const gameOut = path.join(distRoot, 'games', 'phenoquest');
 const runtimeOut = path.join(gameOut, '_runtime');
 
 await rm(distRoot, { recursive: true, force: true });
-await mkdir(runtimeOut, { recursive: true });
-
+await mkdir(path.dirname(gameOut), { recursive: true });
 await cp(publicSource, gameOut, { recursive: true });
+await mkdir(runtimeOut, { recursive: true });
 await cp(runtimeSource, path.join(runtimeOut, 'src'), { recursive: true });
 await cp(dataSource, path.join(runtimeOut, 'data'), { recursive: true });
 
