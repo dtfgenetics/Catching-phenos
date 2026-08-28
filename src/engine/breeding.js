@@ -31,15 +31,20 @@ export function previewPairing({ rules, parentA, parentB, playerState }) {
     return {
       allowed: false,
       reason: 'no_pairing_rule',
+      ruleId: null,
       resultPool: [],
       chanceWeights: {},
       markerBias: {}
     };
   }
 
+  const allowed = canUsePairingRule(rule, playerState);
   return {
-    allowed: canUsePairingRule(rule, playerState),
-    reason: canUsePairingRule(rule, playerState) ? 'allowed' : 'locked_by_rank_or_region',
+    allowed,
+    reason: allowed ? 'allowed' : 'locked_by_rank_or_region',
+    ruleId: rule.id,
+    requiredRank: rule.requiredRank,
+    requiredRegion: rule.requiredRegion,
     resultPool: rule.resultPool,
     chanceWeights: rule.chanceWeights,
     markerBias: rule.markerBias

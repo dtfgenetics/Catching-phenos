@@ -4,6 +4,7 @@ import { applyDialogueEffects, createDialogueSession, getCurrentDialogueLine, se
 import { resolveInteraction } from '../src/engine/interactions.js';
 import { createLineageResult } from '../src/engine/lineage-result-factory.js';
 import { addLineageTimer, createLineageTimer, findLineageTimer, refreshLineageTimers } from '../src/engine/lineage-timers.js';
+import { previewPairing } from '../src/engine/breeding.js';
 import { hasStatus, tickStatuses } from '../src/engine/status-effects.js';
 import { createDefaultSave } from '../src/engine/save.js';
 import { readFile } from 'node:fs/promises';
@@ -49,6 +50,15 @@ assert(interaction.type === 'npc', 'Facing Professor Calyx should resolve an NPC
 assert(interaction.dialogueId === 'calyx_intro', 'Professor Calyx should open calyx_intro dialogue.');
 
 const lineageRule = pairingRules.find((rule) => rule.id === 'mango_puff_x_terp_toad');
+const unlockedPreview = previewPairing({
+  rules: pairingRules,
+  parentA: lineageRule.parentA,
+  parentB: lineageRule.parentB,
+  playerState: { rank: 'field_scout', unlockedRegions: ['seedling_town', 'terp_fields'] }
+});
+assert(unlockedPreview.allowed, 'Mango Puff x Terp Toad should unlock for field_scout with Terp Fields access.');
+assert(unlockedPreview.ruleId === lineageRule.id, 'Lineage preview should expose its canonical rule ID to the browser runtime.');
+
 const lineageTimer = createLineageTimer({
   id: 'test_lineage_timer',
   pairingRuleId: lineageRule.id,
@@ -65,6 +75,11 @@ assert(findLineageTimer(refreshedLineageSave, 'test_lineage_timer')?.status === 
 const lineageResult = createLineageResult({ pairingRule: lineageRule, resultUnits, timer: lineageTimer, random: () => 0 });
 assert(lineageResult.source === 'lineage_lab', 'Lineage result should record lineage_lab source.');
 assert(lineageResult.parents.includes('mango_puff'), 'Lineage result should preserve parent IDs.');
+assert(lineageResult.quality === 'stable', 'Low weighted roll should produce the stable lineage quality.');
+
+const keeperLineageResult = createLineageResult({ pairingRule: lineageRule, resultUnits, timer: lineageTimer, random: () => 0.99 });
+assert(keeperLineageResult.quality === 'keeper_candidate', 'High weighted roll should reach the keeper-candidate quality band.');
+assert(keeperLineageResult.isKeeper === true, 'Keeper-candidate lineage results should be flagged as keepers.');
 
 const sampleUnit = {
   id: 'sample_unit',

@@ -1,3 +1,5 @@
+import { pickPairingQuality } from './breeding.js';
+
 export function pickLineageResult({ pairingRule, resultUnits, random = Math.random }) {
   const resultPool = pairingRule?.resultPool ?? [];
   if (!resultPool.length) return null;
@@ -11,6 +13,7 @@ export function createLineageResult({ pairingRule, resultUnits, timer, random = 
   const baseResult = pickLineageResult({ pairingRule, resultUnits, random });
   if (!baseResult) return null;
 
+  const quality = pickPairingQuality(pairingRule?.chanceWeights, random);
   return {
     id: `${baseResult.id}_${timer.id}`,
     speciesId: baseResult.id,
@@ -21,8 +24,8 @@ export function createLineageResult({ pairingRule, resultUnits, timer, random = 
     trait: baseResult.traits?.[0] ?? 'unknown_trait',
     expression: timer.weatherAtStart ?? 'unknown_expression',
     markers: baseResult.markers ?? {},
-    quality: estimateLineageQuality(baseResult),
-    isKeeper: estimateLineageQuality(baseResult) === 'keeper_candidate',
+    quality,
+    isKeeper: quality === 'keeper_candidate',
     createdAt: Date.now()
   };
 }
