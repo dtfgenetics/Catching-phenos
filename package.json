@@ -9,7 +9,9 @@
     "contracts": "node scripts/data-contract-check.mjs",
     "rules": "node scripts/core-rules-check.mjs",
     "audit": "node scripts/repo-audit.mjs",
-    "check": "npm run audit && npm run contracts && npm run rules && npm run smoke && npm run compile",
+    "build": "node scripts/build-public.mjs && node scripts/verify-public-build.mjs",
+    "verify:build": "node scripts/verify-public-build.mjs",
+    "check": "npm run audit && npm run contracts && npm run rules && npm run smoke && npm run compile && npm run build",
     "dev": "node scripts/dev-server.mjs"
   }
 }
