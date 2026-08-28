@@ -26,7 +26,9 @@ for (const unit of units) {
   assert(Array.isArray(unit.abilities), `${unit.id} abilities must be an array.`);
   assert(Array.isArray(unit.traits), `${unit.id} traits must be an array.`);
   assertKeys(unit.baseStats, statKeys, `${unit.id}.baseStats`);
-  assertKeys(unit.recipe, ['materialsRequired', 'demoSeconds', 'preferredWeather', 'preferredCue'], `${unit.id}.recipe`);
+  assertKeys(unit.recipe, ['materialsRequired', 'demoSeconds', 'fullSeconds', 'preferredWeather', 'preferredCues'], `${unit.id}.recipe`);
+  assert(Array.isArray(unit.recipe.preferredWeather), `${unit.id}.recipe.preferredWeather must be an array.`);
+  assert(Array.isArray(unit.recipe.preferredCues), `${unit.id}.recipe.preferredCues must be an array.`);
 }
 
 const abilities = await readJson('data/moves/mvp_abilities.json');
