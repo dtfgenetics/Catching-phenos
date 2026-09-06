@@ -8,7 +8,13 @@ import {
   removeLineageTimer
 } from '../../../src/engine/lineage-timers.js';
 import { createLineageResult } from '../../../src/engine/lineage-result-factory.js';
+import {
+  findRestorationGoal,
+  getRestorationCandidates,
+  restoreLineage
+} from '../../../src/engine/lineage-restoration.js';
 import { loadSave, writeSave } from '../../../src/engine/save.js';
+import { renderLineageRestorationPanel } from '../../../src/ui/lineage-restoration-ui.js';
 import { renderVaultGardenPanel } from '../../../src/ui/vault-garden-ui.js';
 
 const lineagePanel = document.querySelector('#lineage-lab-panel');
@@ -21,8 +27,9 @@ let hydrateQueued = false;
 function loadLineageData() {
   cachedDataPromise ??= Promise.all([
     fetchJson('../../../data/breeding/pairing_rules_mvp.json'),
-    fetchJson('../../../data/breeding/result_units_mvp.json')
-  ]).then(([pairingRules, resultUnits]) => ({ pairingRules, resultUnits }));
+    fetchJson('../../../data/breeding/result_units_mvp.json'),
+    fetchJson('../../../data/breeding/restoration_goals_mvp.json')
+  ]).then(([pairingRules, resultUnits, restorationGoals]) => ({ pairingRules, resultUnits, restorationGoals }));
   return cachedDataPromise;
 }
 
@@ -54,6 +61,17 @@ function getStatusNode() {
   return node;
 }
 
+function getRestorationNode() {
+  if (!lineagePanel) return null;
+  let node = lineagePanel.querySelector('[data-lineage-restoration-runtime]');
+  if (!node) {
+    node = document.createElement('div');
+    node.dataset.lineageRestorationRuntime = 'true';
+    lineagePanel.querySelector('.lineage-lab-panel')?.append(node);
+  }
+  return node;
+}
+
 function setStatus(message) {
   const node = getStatusNode();
   if (node && node.textContent !== message) node.textContent = message;
@@ -66,11 +84,19 @@ function renderVault(saveData) {
   });
 }
 
+function renderRestorations(saveData, restorationGoals) {
+  renderLineageRestorationPanel({
+    container: getRestorationNode(),
+    candidates: getRestorationCandidates({ saveData, goals: restorationGoals }),
+    onRestore: handleRestoreLineage
+  });
+}
+
 async function hydrateControls() {
   hydrateQueued = false;
   if (!lineagePanel) return;
 
-  const { pairingRules } = await loadLineageData();
+  const { pairingRules, restorationGoals } = await loadLineageData();
   const saveData = refreshAndPersist();
   const timers = saveData.vaultGarden?.lineageTimers ?? [];
   const progression = getProgressionState(saveData);
@@ -98,6 +124,8 @@ async function hydrateControls() {
 
     if (button.textContent !== nextLabel) button.textContent = nextLabel;
   });
+
+  renderRestorations(saveData, restorationGoals);
 }
 
 function queueHydrate() {
@@ -161,6 +189,39 @@ async function handleExistingTimer(timer, rule, saveData = refreshAndPersist()) 
   queueHydrate();
 }
 
+async function handleRestoreLineage({ goalId, unitId }) {
+  try {
+    const { restorationGoals } = await loadLineageData();
+    const goal = findRestorationGoal(restorationGoals, goalId);
+    const saveData = refreshAndPersist();
+    const result = restoreLineage(saveData, goal, unitId);
+
+    if (!result.ok) {
+      const messages = {
+        already_restored: 'That archive goal is already restored.',
+        quality_too_low: 'That offspring does not meet the archive quality requirement.',
+        wrong_species: 'That offspring belongs to a different restoration line.',
+        wrong_source_rule: 'That offspring came from a different cross.',
+        not_lineage_lab_offspring: 'Only Lineage Lab offspring can restore this archive goal.',
+        unit_not_found: 'The selected living offspring is no longer in the Vault Garden.',
+        goal_not_found: 'Restoration goal not found.'
+      };
+      setStatus(messages[result.reason] ?? 'That lineage is not ready to restore yet.');
+      queueHydrate();
+      return;
+    }
+
+    writeSave(result.saveData);
+    renderVault(result.saveData);
+    setStatus(`${result.record.name} restored. The living offspring remains preserved in the Vault Garden.`);
+    queueHydrate();
+  } catch (error) {
+    console.error('PhenoQuest lineage restoration failed.', error);
+    setStatus('The restoration action failed. Check the browser console and game data.');
+    queueHydrate();
+  }
+}
+
 lineagePanel?.addEventListener('click', async (event) => {
   const button = event.target.closest('[data-lineage-start]');
   if (!button) return;
@@ -187,7 +248,7 @@ if (lineagePanel) {
   const observer = new MutationObserver((records) => {
     const externalChange = records.some((record) => {
       const target = record.target instanceof Element ? record.target : record.target.parentElement;
-      return target && !target.closest('[data-lineage-runtime-status]');
+      return target && !target.closest('[data-lineage-runtime-status], [data-lineage-restoration-runtime]');
     });
     if (externalChange) queueHydrate();
   });
