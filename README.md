@@ -37,6 +37,7 @@ The current loop includes:
 - progression/quest events and region unlocks;
 - breeding compatibility previews;
 - **playable Lineage Lab crosses:** start a compatible cross, run the demo timer, claim an offspring into the Vault Garden, and resolve quality from the pairing rule's weighted probabilities;
+- **playable lineage restoration:** use qualifying Lineage Lab offspring to restore named Living Seed Vault archive goals, persist the restoration record, advance archive progress, and keep the living clone preserved in the Vault Garden;
 - build, data-contract, rules, smoke, compile and repository-audit checks.
 
 ## Design Pillars
@@ -98,7 +99,7 @@ This is a **playable browser vertical slice**, not a finished RPG. Before promot
 
 - broader world/map content and a cleaner guided first-session flow;
 - stronger combat/enemy variety and balance testing;
-- a complete lineage-restoration progression loop beyond the MVP pairings;
+- lineage-restoration progression beyond the three MVP archive goals and current pairing set;
 - final original visual/audio assets;
 - mobile/touch and accessibility QA;
 - human playtesting and save-migration testing;
