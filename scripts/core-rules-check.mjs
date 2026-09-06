@@ -4,6 +4,11 @@ import { applyDialogueEffects, createDialogueSession, getCurrentDialogueLine, se
 import { resolveInteraction } from '../src/engine/interactions.js';
 import { addItem, addMaterial } from '../src/engine/inventory.js';
 import { createLineageResult } from '../src/engine/lineage-result-factory.js';
+import {
+  getRestorationCandidates,
+  meetsRestorationQuality,
+  restoreLineage
+} from '../src/engine/lineage-restoration.js';
 import { addLineageTimer, createLineageTimer, findLineageTimer, refreshLineageTimers } from '../src/engine/lineage-timers.js';
 import { previewPairing } from '../src/engine/breeding.js';
 import { hasStatus, tickStatuses } from '../src/engine/status-effects.js';
@@ -24,6 +29,9 @@ const seedlingTown = await readJson('data/maps/seedling_town.json');
 const abilities = await readJson('data/moves/mvp_abilities.json');
 const pairingRules = await readJson('data/breeding/pairing_rules_mvp.json');
 const resultUnits = await readJson('data/breeding/result_units_mvp.json');
+const restorationGoals = await readJson('data/breeding/restoration_goals_mvp.json');
+
+assert(Array.isArray(defaultSave.vaultGarden.restoredLineages), 'Default saves must include restoredLineages for migration-safe restoration progress.');
 
 const inventorySnapshot = {
   items: [{ itemId: 'root_tonic', quantity: 1 }],
@@ -98,6 +106,45 @@ assert(lineageResult.quality === 'stable', 'Low weighted roll should produce the
 const keeperLineageResult = createLineageResult({ pairingRule: lineageRule, resultUnits, timer: lineageTimer, random: () => 0.99 });
 assert(keeperLineageResult.quality === 'keeper_candidate', 'High weighted roll should reach the keeper-candidate quality band.');
 assert(keeperLineageResult.isKeeper === true, 'Keeper-candidate lineage results should be flagged as keepers.');
+
+assert(meetsRestorationQuality('stable', 'stable'), 'Stable offspring should satisfy a stable archive requirement.');
+assert(!meetsRestorationQuality('stable', 'strong'), 'Stable offspring must not satisfy a strong archive requirement.');
+assert(meetsRestorationQuality('keeper_candidate', 'strong'), 'Keeper-candidate offspring should satisfy a strong archive requirement.');
+
+const aromaGoal = restorationGoals.find((goal) => goal.id === 'restore_aroma_echo');
+const restorationSave = {
+  ...defaultSave,
+  vaultGarden: {
+    ...defaultSave.vaultGarden,
+    rootedUnits: [lineageResult]
+  }
+};
+const restorationCandidates = getRestorationCandidates({ saveData: restorationSave, goals: restorationGoals });
+const aromaCandidate = restorationCandidates.find((entry) => entry.goal.id === aromaGoal.id);
+assert(aromaCandidate.qualifyingUnit?.id === lineageResult.id, 'A qualifying Lineage Lab offspring should be offered to its matching archive goal.');
+
+const restored = restoreLineage(restorationSave, aromaGoal, lineageResult.id, 123456);
+assert(restored.ok, 'A qualifying Lineage Lab offspring should restore its archive goal.');
+assert(restored.saveData.vaultGarden.rootedUnits.length === 1, 'Restoration must preserve the living offspring in the Vault Garden.');
+assert(restored.saveData.vaultGarden.rootedUnits[0].restorationIds.includes(aromaGoal.id), 'Restored living offspring should record the archive goal it proved.');
+assert(restored.saveData.vaultGarden.restoredLineages.length === 1, 'Restoration should persist one archive record.');
+assert(restored.saveData.world.archiveProgress.fruit_branch === 100, 'Restoration should advance its canonical archive branch progress.');
+const duplicateRestore = restoreLineage(restored.saveData, aromaGoal, lineageResult.id, 123457);
+assert(!duplicateRestore.ok && duplicateRestore.reason === 'already_restored', 'The same archive goal must not be restored twice.');
+
+const frostedGoal = restorationGoals.find((goal) => goal.id === 'restore_frosted_orchard');
+const underQualityUnit = {
+  ...lineageResult,
+  id: 'frosted_mango_test',
+  speciesId: frostedGoal.resultSpeciesId,
+  sourceRule: frostedGoal.sourceRule,
+  quality: 'stable'
+};
+const underQualityAttempt = restoreLineage({
+  ...defaultSave,
+  vaultGarden: { ...defaultSave.vaultGarden, rootedUnits: [underQualityUnit] }
+}, frostedGoal, underQualityUnit.id);
+assert(!underQualityAttempt.ok && underQualityAttempt.reason === 'quality_too_low', 'Archive quality thresholds must reject under-qualified offspring.');
 
 const sampleUnit = {
   id: 'sample_unit',
