@@ -19,7 +19,8 @@ export function createDefaultSave() {
       activeTimers: [],
       lineageTimers: [],
       rootedUnits: [],
-      keeperIds: []
+      keeperIds: [],
+      restoredLineages: []
     },
     inventory: {
       items: [],
