@@ -1,0 +1,32 @@
+[
+  {
+    "id": "restore_aroma_echo",
+    "name": "Aroma Echo Archive",
+    "description": "Rebuild the first Fruit x field-control lineage and preserve a living Mango Toadlet in the Vault.",
+    "resultSpeciesId": "mango_toadlet",
+    "sourceRule": "mango_puff_x_terp_toad",
+    "minimumQuality": "stable",
+    "archiveBranch": "fruit_branch",
+    "archiveProgress": 100
+  },
+  {
+    "id": "restore_frosted_orchard",
+    "name": "Frosted Orchard Archive",
+    "description": "Recover a strong Fruit x Frost expression without sacrificing the living clone used to prove the line.",
+    "resultSpeciesId": "frosted_mango",
+    "sourceRule": "mango_puff_x_frostling",
+    "minimumQuality": "strong",
+    "archiveBranch": "frosted_orchard_branch",
+    "archiveProgress": 100
+  },
+  {
+    "id": "restore_cold_fuel_echo",
+    "name": "Cold Fuel Echo Archive",
+    "description": "Stabilize the rare Frost x Gas branch with a keeper-candidate Frost Goblin.",
+    "resultSpeciesId": "frost_goblin",
+    "sourceRule": "frostling_x_gas_goblin",
+    "minimumQuality": "keeper_candidate",
+    "archiveBranch": "cold_fuel_branch",
+    "archiveProgress": 100
+  }
+]

@@ -1,6 +1,6 @@
 {
   "project": "PhenoQuest: The Living Seed Vault",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "mechanics": [
     {
       "id": "starter_selection",
@@ -67,21 +67,30 @@
     },
     {
       "id": "breeding_genotype_preview",
-      "status": "read_only_preview",
-      "goal": "Preview future pairing routes from team and Vault Garden candidates.",
+      "status": "wired_mvp",
+      "goal": "Preview compatible pairing routes from team and Vault Garden candidates.",
       "dataFiles": ["data/breeding/genotype_markers.json", "data/breeding/pairing_rules_mvp.json", "data/breeding/result_units_mvp.json"],
       "engineFiles": ["src/engine/breeding.js", "src/engine/genotype.js", "src/engine/progression.js"],
       "uiFiles": ["src/ui/breeding-ui.js", "src/ui/lineage-lab-ui.js"],
-      "browserFiles": ["public/games/phenoquest/game.js"]
+      "browserFiles": ["public/games/phenoquest/game.js", "public/games/phenoquest/lineage-runtime.js"]
     },
     {
       "id": "lineage_lab_timers",
-      "status": "engine_ready",
+      "status": "wired_mvp",
       "goal": "Create, refresh, and resolve timed Lineage Lab batches into Vault Garden result units.",
       "dataFiles": ["data/breeding/pairing_rules_mvp.json", "data/breeding/result_units_mvp.json"],
       "engineFiles": ["src/engine/lineage-timers.js", "src/engine/lineage-result-factory.js"],
-      "uiFiles": ["src/ui/vault-garden-ui.js"],
-      "browserFiles": []
+      "uiFiles": ["src/ui/lineage-lab-ui.js", "src/ui/vault-garden-ui.js"],
+      "browserFiles": ["public/games/phenoquest/lineage-runtime.js"]
+    },
+    {
+      "id": "lineage_restoration",
+      "status": "wired_mvp",
+      "goal": "Use qualifying Lineage Lab offspring to restore named archive goals while preserving the living clone in the Vault Garden.",
+      "dataFiles": ["data/breeding/restoration_goals_mvp.json"],
+      "engineFiles": ["src/engine/lineage-restoration.js", "src/engine/game-state.js", "src/engine/save.js"],
+      "uiFiles": ["src/ui/lineage-restoration-ui.js"],
+      "browserFiles": ["public/games/phenoquest/lineage-runtime.js", "public/games/phenoquest/lineage-restoration-v1.css"]
     },
     {
       "id": "quest_progression",

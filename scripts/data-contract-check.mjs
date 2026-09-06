@@ -52,6 +52,22 @@ for (const resultUnit of resultUnits) {
   assertKeys(resultUnit.baseStats, statKeys, `${resultUnit.id}.baseStats`);
 }
 
+const resultUnitIds = new Set(resultUnits.map((unit) => unit.id));
+const pairingRulesById = new Map(pairingRules.map((rule) => [rule.id, rule]));
+const restorationGoals = await readJson('data/breeding/restoration_goals_mvp.json');
+const restorationIds = new Set();
+for (const goal of restorationGoals) {
+  assertKeys(goal, ['id', 'name', 'description', 'resultSpeciesId', 'sourceRule', 'minimumQuality', 'archiveBranch', 'archiveProgress'], `restoration goal ${goal.id ?? 'unknown'}`);
+  assert(!restorationIds.has(goal.id), `Duplicate restoration goal id: ${goal.id}`);
+  restorationIds.add(goal.id);
+  assert(['stable', 'strong', 'keeper_candidate'].includes(goal.minimumQuality), `${goal.id} minimumQuality is invalid.`);
+  assert(Number.isFinite(goal.archiveProgress) && goal.archiveProgress > 0 && goal.archiveProgress <= 100, `${goal.id} archiveProgress must be between 1 and 100.`);
+  assert(resultUnitIds.has(goal.resultSpeciesId), `${goal.id} references missing result species ${goal.resultSpeciesId}.`);
+  const sourceRule = pairingRulesById.get(goal.sourceRule);
+  assert(sourceRule, `${goal.id} references missing pairing rule ${goal.sourceRule}.`);
+  assert(sourceRule.resultPool.includes(goal.resultSpeciesId), `${goal.id} result species must be produced by ${goal.sourceRule}.`);
+}
+
 const mechanicRegistry = await readJson('data/system/mechanic_registry.json');
 assert(Array.isArray(mechanicRegistry.mechanics), 'mechanic_registry mechanics must be an array.');
 for (const mechanic of mechanicRegistry.mechanics) {
