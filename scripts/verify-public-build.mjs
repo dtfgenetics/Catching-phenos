@@ -31,6 +31,7 @@ for (const required of [
   'index.html',
   'style.css',
   'experience-v2.css',
+  'lineage-restoration-v1.css',
   'game.js',
   'lineage-runtime.js',
   'experience-v2.js',
@@ -40,14 +41,17 @@ for (const required of [
   '_runtime/src/engine/first-session.js',
   '_runtime/src/engine/lineage-timers.js',
   '_runtime/src/engine/lineage-result-factory.js',
+  '_runtime/src/engine/lineage-restoration.js',
   '_runtime/src/engine/save.js',
   '_runtime/src/ui/combat-ui.js',
   '_runtime/src/ui/first-session-ui.js',
   '_runtime/src/ui/lineage-lab-ui.js',
+  '_runtime/src/ui/lineage-restoration-ui.js',
   '_runtime/data/phenos/mvp_units.json',
   '_runtime/data/encounters/terp_fields.json',
   '_runtime/data/breeding/pairing_rules_mvp.json',
-  '_runtime/data/breeding/result_units_mvp.json'
+  '_runtime/data/breeding/result_units_mvp.json',
+  '_runtime/data/breeding/restoration_goals_mvp.json'
 ]) {
   const fullPath = path.join(gameRoot, required);
   if (!await exists(fullPath)) throw new Error(`Production package missing required file: ${required}`);
@@ -58,7 +62,7 @@ if (await exists(path.join(repoRoot, 'dist', 'src')) || await exists(path.join(r
 }
 
 const indexHtml = await readFile(path.join(gameRoot, 'index.html'), 'utf8');
-for (const marker of ['./style.css', './experience-v2.css', './game.js', './lineage-runtime.js', './experience-v2.js']) {
+for (const marker of ['./style.css', './experience-v2.css', './lineage-restoration-v1.css', './game.js', './lineage-runtime.js', './experience-v2.js']) {
   if (!indexHtml.includes(marker)) throw new Error(`Production index is missing route-local asset ${marker}.`);
 }
 if (!indexHtml.includes('first-session-guide') || !indexHtml.includes('journey-nav')) {
@@ -115,8 +119,13 @@ for (const dataPath of dataMatches) {
 }
 
 const lineageEntry = await readFile(lineageEntryPath, 'utf8');
-if (!lineageEntry.includes('pairing_rules_mvp.json') || !lineageEntry.includes('result_units_mvp.json')) {
-  throw new Error('Production lineage runtime is not wired to canonical pairing and result data.');
+for (const lineageDataMarker of ['pairing_rules_mvp.json', 'result_units_mvp.json', 'restoration_goals_mvp.json']) {
+  if (!lineageEntry.includes(lineageDataMarker)) {
+    throw new Error(`Production lineage runtime is missing canonical data: ${lineageDataMarker}`);
+  }
+}
+if (!lineageEntry.includes('lineage-restoration.js') || !lineageEntry.includes('lineage-restoration-ui.js')) {
+  throw new Error('Production lineage runtime is not wired to canonical restoration engine and UI modules.');
 }
 
-console.log(`Verified PhenoQuest production package: ${javascriptFiles.length} JavaScript files, ${importCount} relative module imports, ${dataMatches.length} core JSON dependencies, guided first run and Lineage Lab runtime included.`);
+console.log(`Verified PhenoQuest production package: ${javascriptFiles.length} JavaScript files, ${importCount} relative module imports, ${dataMatches.length} core JSON dependencies, guided first run, Lineage Lab and restoration runtime included.`);
