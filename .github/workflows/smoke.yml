@@ -25,10 +25,5 @@ jobs:
       - name: Run project checks and self-contained build
         run: npm run check
 
-      - name: Install Chromium smoke-test dependency
-        run: |
-          npm install --no-save playwright
-          npx playwright install chromium
-
-      - name: Play through guided first-session surface
-        run: node scripts/browser-smoke.mjs
+      - name: Verify deterministic production runtime
+        run: node scripts/runtime-smoke.mjs
