@@ -6,6 +6,52 @@ function findObjectAt(map, x, y) {
   return (map.objects ?? []).find((object) => object.x === x && object.y === y) ?? null;
 }
 
+export function getCenteredScrollLeft({ itemCenter, viewportWidth, contentWidth }) {
+  const safeViewport = Math.max(0, Number(viewportWidth) || 0);
+  const safeContent = Math.max(safeViewport, Number(contentWidth) || 0);
+  const maxScroll = Math.max(0, safeContent - safeViewport);
+  const centered = (Number(itemCenter) || 0) - safeViewport / 2;
+  return Math.min(maxScroll, Math.max(0, centered));
+}
+
+export function shouldRecenterPlayer({ itemCenterInViewport, viewportWidth }) {
+  const width = Math.max(0, Number(viewportWidth) || 0);
+  if (!width) return false;
+  const center = Number(itemCenterInViewport) || 0;
+  return center < width * 0.28 || center > width * 0.72;
+}
+
+function keepPlayerVisible(grid) {
+  const playerTile = grid.querySelector('.player-tile');
+  if (!playerTile) return;
+
+  const recenter = () => {
+    if (grid.scrollWidth <= grid.clientWidth + 1) return;
+
+    const gridRect = grid.getBoundingClientRect();
+    const tileRect = playerTile.getBoundingClientRect();
+    const itemCenterInViewport = tileRect.left - gridRect.left + tileRect.width / 2;
+    if (!shouldRecenterPlayer({ itemCenterInViewport, viewportWidth: grid.clientWidth })) return;
+
+    const itemCenter = grid.scrollLeft + itemCenterInViewport;
+    const left = getCenteredScrollLeft({
+      itemCenter,
+      viewportWidth: grid.clientWidth,
+      contentWidth: grid.scrollWidth
+    });
+    const reducedMotion = Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+
+    if (typeof grid.scrollTo === 'function') {
+      grid.scrollTo({ left, behavior: reducedMotion ? 'auto' : 'smooth' });
+    } else {
+      grid.scrollLeft = left;
+    }
+  };
+
+  if (typeof globalThis.requestAnimationFrame === 'function') globalThis.requestAnimationFrame(recenter);
+  else recenter();
+}
+
 export function renderMapGrid({ container, map, player }) {
   if (!container || !map) return;
 
@@ -51,6 +97,7 @@ export function renderMapGrid({ container, map, player }) {
   }
 
   container.appendChild(grid);
+  keepPlayerVisible(grid);
 }
 
 export function renderMapLabel({ container, map, player }) {
