@@ -69,6 +69,14 @@ if (!indexHtml.includes('first-session-guide') || !indexHtml.includes('journey-n
   throw new Error('Production index is missing guided first-session surfaces.');
 }
 
+const style = await readFile(path.join(gameRoot, 'style.css'), 'utf8');
+if (/html\s*,\s*body\s*\{[^}]*overflow-x\s*:\s*hidden/i.test(style)) {
+  throw new Error('Production PhenoQuest must fix intrinsic widths instead of hiding page-level horizontal overflow.');
+}
+for (const marker of ['min-width: 0', 'min-height: 44px', 'overscroll-behavior-inline: contain', '@media (max-width:390px)']) {
+  if (!style.includes(marker)) throw new Error(`Production responsive contract is missing: ${marker}`);
+}
+
 for (const browserEntryPath of [entryPath, lineageEntryPath, experienceEntryPath]) {
   const source = await readFile(browserEntryPath, 'utf8');
   if (source.includes('../../../src/') || source.includes('../../../data/')) {
@@ -128,4 +136,4 @@ if (!lineageEntry.includes('lineage-restoration.js') || !lineageEntry.includes('
   throw new Error('Production lineage runtime is not wired to canonical restoration engine and UI modules.');
 }
 
-console.log(`Verified PhenoQuest production package: ${javascriptFiles.length} JavaScript files, ${importCount} relative module imports, ${dataMatches.length} core JSON dependencies, guided first run, Lineage Lab and restoration runtime included.`);
+console.log(`Verified PhenoQuest production package: ${javascriptFiles.length} JavaScript files, ${importCount} relative module imports, ${dataMatches.length} core JSON dependencies, responsive containment, guided first run, Lineage Lab and restoration runtime included.`);
