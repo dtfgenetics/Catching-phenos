@@ -48,7 +48,8 @@ function buildJourneyNav() {
     button.type = 'button';
     button.textContent = label;
     button.addEventListener('click', () => {
-      document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const reducedMotion = Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+      document.querySelector(selector)?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
     });
     journeyNav.append(button);
   }
