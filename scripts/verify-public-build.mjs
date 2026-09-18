@@ -76,6 +76,17 @@ if (/html\s*,\s*body\s*\{[^}]*overflow-x\s*:\s*hidden/i.test(style)) {
 for (const marker of ['min-width: 0', 'min-height: 44px', 'overscroll-behavior-inline: contain', '@media (max-width:390px)']) {
   if (!style.includes(marker)) throw new Error(`Production responsive contract is missing: ${marker}`);
 }
+const experienceCss = await readFile(path.join(gameRoot, 'experience-v2.css'), 'utf8');
+const experienceJs = await readFile(path.join(gameRoot, 'experience-v2.js'), 'utf8');
+if (!experienceCss.includes('top:calc(var(--dtf-global-header-height,74px) + 8px)')) {
+  throw new Error('PhenoQuest sticky journey nav must clear the DTF global header.');
+}
+if (!experienceCss.includes('.journey-nav button{flex:0 0 auto;min-height:44px')) {
+  throw new Error('PhenoQuest journey navigation must retain 44px touch targets.');
+}
+if (!experienceJs.includes("prefers-reduced-motion: reduce") || !experienceJs.includes("reducedMotion ? 'auto' : 'smooth'")) {
+  throw new Error('PhenoQuest journey navigation must respect reduced-motion scrolling.');
+}
 
 for (const browserEntryPath of [entryPath, lineageEntryPath, experienceEntryPath]) {
   const source = await readFile(browserEntryPath, 'utf8');
