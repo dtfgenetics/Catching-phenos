@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "repository": "dtfgenetics/Catching-phenos",
+  "controlRepository": "dtfgenetics/Thc",
+  "defaultBranch": "main",
+  "canonicalDomains": [
+    "PhenoQuest game",
+    "PhenoQuest genetics game data",
+    "PhenoQuest browser runtime"
+  ],
+  "sourceRoots": [
+    "src/",
+    "data/",
+    "assets/",
+    "public/games/phenoquest/",
+    "scripts/",
+    "docs/",
+    "package.json",
+    "AGENTS.md",
+    "README.md"
+  ],
+  "protectedPaths": [
+    ".github/workflows/**",
+    "assets/**",
+    "public/games/phenoquest/**"
+  ],
+  "verificationProfiles": {
+    "default": {
+      "commands": [
+        "npm run check"
+      ],
+      "ciAuthoritative": true
+    },
+    "data": {
+      "commands": [
+        "npm run contracts",
+        "npm run rules",
+        "npm run audit"
+      ],
+      "ciAuthoritative": true
+    },
+    "release": {
+      "commands": [
+        "npm run check",
+        "npm run verify:build"
+      ],
+      "ciAuthoritative": true
+    }
+  },
+  "production": {
+    "directMutation": false,
+    "integrationOwner": "dtfgenetics/Thc",
+    "route": "/games/phenoquest/",
+    "notes": "The self-contained public build is a release artifact; canonical source/data changes belong in source roots and must be rebuilt before central integration."
+  }
+}
